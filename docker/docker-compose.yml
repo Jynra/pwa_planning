@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  planning-travail:
+    build: 
+      context: ../
+      dockerfile: docker/Dockerfile
+    container_name: planning-travail-app
+    ports:
+      - "3047:80"  # Port externe:interne
+    restart: unless-stopped
+    volumes:
+      # Monte TOUT le projet source vers nginx
+      - ../:/usr/share/nginx/html
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

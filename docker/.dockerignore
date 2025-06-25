@@ -1,0 +1,35 @@
+# Documentation
+*.md
+README.md
+
+# Git
+.git
+.gitignore
+
+# Docker files (dans le répertoire docker/)
+docker/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Node modules (si vous en ajoutez plus tard)
+node_modules/
+
+# Build artifacts (si vous ajoutez un build process)
+dist/
+build/
