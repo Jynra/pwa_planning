@@ -8,7 +8,7 @@ set -e
 
 PROJECT_NAME="planning-travail"
 STACK_NAME="planning-travail"
-PORT=3047
+PORT=4047
 
 # Couleurs pour les logs
 RED='\033[0;31m'
