@@ -1,0 +1,193 @@
+/* Responsive design */
+@media (max-width: 480px) {
+    .container {
+        padding: 0 10px;
+    }
+    
+    .header-card {
+        padding: 20px;
+    }
+    
+    .controls-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .day-card {
+        padding: 20px;
+    }
+
+    .import-btn, .today-btn {
+        justify-content: center;
+        min-width: unset;
+    }
+    
+    .stats-bar {
+        padding: 10px;
+    }
+    
+    .stat-item {
+        min-width: 70px;
+    }
+    
+    .stat-value {
+        font-size: 1.3rem;
+    }
+    
+    .nav-btn {
+        width: 45px;
+        height: 45px;
+        font-size: 1.3rem;
+    }
+    
+    .week-dates {
+        font-size: 1rem;
+    }
+}
+
+/* Tablettes */
+@media (min-width: 481px) and (max-width: 768px) {
+    .container {
+        max-width: 600px;
+        padding: 0 15px;
+    }
+    
+    .header-card {
+        padding: 35px;
+    }
+    
+    .day-card {
+        padding: 30px;
+    }
+}
+
+/* Desktop large */
+@media (min-width: 769px) {
+    .container {
+        max-width: 500px;
+    }
+    
+    .day-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 40px var(--shadow);
+    }
+}
+
+/* Améliorations PWA */
+@media (display-mode: standalone) {
+    body {
+        padding-top: 30px;
+    }
+    
+    .save-indicator {
+        top: 30px;
+    }
+}
+
+/* Mode paysage mobile */
+@media (orientation: landscape) and (max-height: 500px) {
+    body {
+        padding: 10px;
+    }
+    
+    .header-card {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .header-card h1 {
+        font-size: 1.5rem;
+        margin-bottom: 3px;
+    }
+    
+    .header-card .month {
+        margin-bottom: 15px;
+    }
+    
+    .controls-row {
+        margin-bottom: 15px;
+    }
+    
+    .day-card {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .stats-bar {
+        padding: 10px;
+        margin-bottom: 15px;
+    }
+}
+
+/* Corrections spécifiques iOS */
+@supports (-webkit-appearance: none) {
+    .container {
+        padding-bottom: 30px;
+    }
+    
+    /* Fix pour les boutons sur iOS - Version standard + fallback */
+    .import-btn, .today-btn, .nav-btn, .theme-toggle, .reset-btn {
+        appearance: none;
+        -webkit-appearance: none; /* Fallback pour anciens navigateurs */
+        user-select: none;
+        -webkit-user-select: none; /* Fallback pour anciens navigateurs */
+        -webkit-touch-callout: none;
+    }
+}
+
+/* Préférences de mouvement réduit */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .theme-toggle:hover {
+        transform: none;
+    }
+    
+    .reset-btn:hover {
+        transform: none;
+    }
+    
+    .day-card:hover {
+        transform: none;
+    }
+    
+    .nav-btn:hover {
+        transform: none;
+    }
+    
+    .import-btn:hover, .today-btn:hover {
+        transform: none;
+    }
+}
+
+/* Impression */
+@media print {
+    body {
+        background: white;
+        color: black;
+        padding: 0;
+    }
+    
+    .theme-toggle, .reset-btn, .import-btn, .today-btn, .nav-btn {
+        display: none;
+    }
+    
+    .save-indicator {
+        display: none;
+    }
+    
+    .day-card {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+    
+    .header-card {
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+}

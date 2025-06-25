@@ -1,0 +1,571 @@
+/* Reset et base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Variables CSS pour les thèmes */
+:root {
+    --bg-primary: #e3f2fd;
+    --bg-secondary: #bbdefb;
+    --card-bg: #ffffff;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --text-muted: #888888;
+    --accent-blue: #64b5f6;
+    --accent-green: #81c784;
+    --accent-orange: #ffb74d;
+    --accent-red: #ff8a80;
+    --border-color: #e0e0e0;
+    --shadow: rgba(0,0,0,0.1);
+}
+
+.dark-theme {
+    --bg-primary: #1a1a2e;
+    --bg-secondary: #16213e;
+    --card-bg: #2d3748;
+    --text-primary: #e0e0e0;
+    --text-secondary: #b0b0b0;
+    --text-muted: #888888;
+    --accent-blue: #5a9fd4;
+    --accent-green: #68b684;
+    --accent-orange: #d49843;
+    --accent-red: #d47570;
+    --border-color: #4a5568;
+    --shadow: rgba(0,0,0,0.3);
+}
+
+/* Corps de page */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+/* Container principal */
+.container {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* Carte d'en-tête */
+.header-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 20px var(--shadow);
+    text-align: center;
+    position: relative;
+}
+
+.header-card h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 5px;
+}
+
+.header-card .month {
+    color: var(--text-muted);
+    font-size: 1rem;
+    margin-bottom: 25px;
+}
+
+/* Boutons de l'en-tête */
+.theme-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: var(--border-color);
+    color: var(--text-primary);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+    background: var(--accent-blue);
+    color: white;
+    transform: rotate(180deg);
+}
+
+.reset-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: var(--border-color);
+    color: var(--text-secondary);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.reset-btn:hover {
+    background: var(--accent-orange);
+    color: white;
+    transform: rotate(-180deg);
+}
+
+/* Ligne de contrôles */
+.controls-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.import-btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 15px;
+    background: var(--accent-blue);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    font-size: 0.9rem;
+}
+
+.import-btn:hover {
+    background: #42a5f5;
+    transform: translateY(-2px);
+}
+
+.today-btn {
+    padding: 12px 15px;
+    background: var(--border-color);
+    color: var(--text-secondary);
+    border: none;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.today-btn:hover {
+    background: var(--accent-green);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.today-btn.not-current-week {
+    background: var(--accent-orange);
+    color: white;
+}
+
+.today-btn.not-current-week:hover {
+    background: #d49843;
+    transform: translateY(-1px);
+}
+
+.file-input {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+/* Navigation de semaine */
+.week-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.nav-btn {
+    background: var(--bg-secondary);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+}
+
+.nav-btn:hover {
+    background: var(--accent-blue);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.week-info {
+    text-align: center;
+}
+
+.week-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+}
+
+.current-badge {
+    background: var(--accent-green);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.week-dates {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Barre de statistiques */
+.stats-bar {
+    background: var(--card-bg);
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+    box-shadow: 0 2px 10px var(--shadow);
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 80px;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Container de planning */
+.planning-container {
+    display: none;
+}
+
+.planning-container.show {
+    display: block;
+}
+
+/* Cartes de jour */
+.day-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 20px var(--shadow);
+    transition: all 0.3s ease;
+}
+
+.day-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px var(--shadow);
+}
+
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.day-name {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.day-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+}
+
+/* Badges */
+.today-badge {
+    background: var(--accent-green);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.rest-badge {
+    background: var(--accent-orange);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.night-badge {
+    background: #673ab7;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.multiple-badge {
+    background: var(--accent-red);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Section d'horaires */
+.schedule-section {
+    margin-bottom: 20px;
+}
+
+.schedule-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+}
+
+.time-slot {
+    background: #e3f2fd;
+    border: 2px solid var(--accent-blue);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dark-theme .time-slot {
+    background: #1e3a5f;
+}
+
+.night-slot {
+    background: #f3e5f5;
+    border-color: #673ab7;
+}
+
+.dark-theme .night-slot {
+    background: #2d1b36;
+}
+
+.time-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-blue);
+    border-radius: 50%;
+}
+
+.night-dot {
+    background: #673ab7;
+}
+
+.time-text {
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.duration-badge {
+    background: rgba(255,255,255,0.8);
+    color: #333;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.dark-theme .duration-badge {
+    background: rgba(0,0,0,0.3);
+    color: #e0e0e0;
+}
+
+.total-hours {
+    background: #c8e6c9;
+    color: #2e7d32;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    display: inline-block;
+    margin-top: 10px;
+}
+
+.dark-theme .total-hours {
+    background: #2e5234;
+    color: #81c784;
+}
+
+/* Section d'informations */
+.info-section {
+    margin-top: 20px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: var(--text-secondary);
+}
+
+.info-icon {
+    font-size: 1.1rem;
+}
+
+/* États de l'application */
+.no-data {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+}
+
+.no-data-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-color);
+    border-top: 4px solid var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    margin-top: 30px;
+    padding: 20px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* Indicateur de sauvegarde */
+.save-indicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--accent-green);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.save-indicator.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+    .container {
+        padding: 0 10px;
+    }
+    
+    .header-card {
+        padding: 20px;
+    }
+    
+    .controls-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .day-card {
+        padding: 20px;
+    }
+
+    .import-btn, .today-btn {
+        justify-content: center;
+        min-width: unset;
+    }
+}
+
+/* Améliorations PWA */
+@media (display-mode: standalone) {
+    body {
+        padding-top: 30px;
+    }
+}
+
+/* Corrections spécifiques iOS */
+@supports (-webkit-appearance: none) {
+    .container {
+        padding-bottom: 30px;
+    }
+}
