@@ -7,7 +7,7 @@ services:
       dockerfile: docker/Dockerfile
     container_name: planning-travail-app
     ports:
-      - "3047:80"  # Port externe:interne
+      - "4047:80"  # Port externe:interne
     restart: unless-stopped
     volumes:
       # Monte TOUT le projet source vers nginx
