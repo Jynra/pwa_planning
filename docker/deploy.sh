@@ -149,17 +149,17 @@ test_pwa() {
         return 1
     fi
     
-    # Test des fichiers CSS/JS
-    if curl -s -f http://localhost:$PORT/css/variables.css > /dev/null; then
-        log_success "Fichiers CSS accessibles"
+    # Test des fichiers CSS/JS dans assets/
+    if curl -s -f http://localhost:$PORT/assets/css/variables.css > /dev/null; then
+        log_success "Fichiers CSS dans assets/ accessibles"
     else
-        log_warning "Certains fichiers CSS peuvent être inaccessibles"
+        log_warning "Certains fichiers CSS dans assets/ peuvent être inaccessibles"
     fi
     
-    if curl -s -f http://localhost:$PORT/js/TimeUtils.js > /dev/null; then
-        log_success "Fichiers JS accessibles"
+    if curl -s -f http://localhost:$PORT/assets/js/TimeUtils.js > /dev/null; then
+        log_success "Fichiers JS dans assets/ accessibles"
     else
-        log_warning "Certains fichiers JS peuvent être inaccessibles"
+        log_warning "Certains fichiers JS dans assets/ peuvent être inaccessibles"
     fi
     
     log_success "Tests PWA terminés"
@@ -224,6 +224,9 @@ show_info() {
     echo "📂 Répertoire: $(pwd)"
     echo "📄 Manifest: http://localhost:$PORT/manifest.json"
     echo "⚙️ Service Worker: http://localhost:$PORT/sw.js"
+    echo "🎨 Assets CSS: http://localhost:$PORT/assets/css/"
+    echo "⚡ Assets JS: http://localhost:$PORT/assets/js/"
+    echo "🖼️ Icônes: http://localhost:$PORT/assets/icons/"
     echo ""
     echo "📱 Instructions d'installation PWA:"
     echo "  Android: Menu → 'Ajouter à l'écran d'accueil'"
