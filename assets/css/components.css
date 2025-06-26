@@ -1,15 +1,15 @@
-/* Boutons de l'en-tête */
+/* Boutons de l'en-tête plus accessibles */
 .theme-toggle {
     position: absolute;
-    top: 20px;
-    right: 20px;
+    top: 15px; /* Réduit de 20px */
+    right: 15px; /* Réduit de 20px */
     background: var(--border-color);
     color: var(--text-primary);
     border: none;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    font-size: 1.2rem;
+    width: 45px; /* Augmenté de 40px */
+    height: 45px; /* Augmenté de 40px */
+    font-size: 1.3rem; /* Augmenté de 1.2rem */
     cursor: pointer;
     transition: all 0.3s ease;
 }
@@ -22,15 +22,15 @@
 
 .reset-btn {
     position: absolute;
-    top: 20px;
-    left: 20px;
+    top: 15px; /* Réduit de 20px */
+    left: 15px; /* Réduit de 20px */
     background: var(--border-color);
     color: var(--text-secondary);
     border: none;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    font-size: 1.2rem;
+    width: 45px; /* Augmenté de 40px */
+    height: 45px; /* Augmenté de 40px */
+    font-size: 1.3rem; /* Augmenté de 1.2rem */
     cursor: pointer;
     transition: all 0.3s ease;
 }
@@ -41,15 +41,15 @@
     transform: rotate(-180deg);
 }
 
-/* Boutons principaux */
+/* Boutons principaux optimisés mobile */
 .import-btn {
     flex: 1;
-    min-width: 120px;
-    padding: 12px 15px;
+    min-width: 140px; /* Augmenté de 120px */
+    padding: 14px 16px; /* Augmenté pour faciliter le touch */
     background: var(--accent-blue);
     color: white;
     border: none;
-    border-radius: 50px;
+    border-radius: 25px; /* Réduit de 50px pour économiser l'espace */
     font-weight: 600;
     cursor: pointer;
     display: flex;
@@ -59,7 +59,7 @@
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-    font-size: 0.9rem;
+    font-size: 0.95rem; /* Légèrement augmenté */
 }
 
 .import-btn:hover {
@@ -68,19 +68,20 @@
 }
 
 .today-btn {
-    padding: 12px 15px;
+    padding: 14px 16px; /* Augmenté pour faciliter le touch */
     background: var(--border-color);
     color: var(--text-secondary);
     border: none;
-    border-radius: 50px;
+    border-radius: 25px; /* Réduit de 50px */
     font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
     transition: all 0.3s ease;
-    font-size: 0.9rem;
+    font-size: 0.95rem; /* Légèrement augmenté */
     white-space: nowrap;
+    min-width: 120px; /* Largeur minimum */
 }
 
 .today-btn:hover {
@@ -107,14 +108,14 @@
     cursor: pointer;
 }
 
-/* Boutons de navigation */
+/* Boutons de navigation plus grands pour mobile */
 .nav-btn {
     background: var(--bg-secondary);
     border: none;
     border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    font-size: 1.5rem;
+    width: 55px; /* Augmenté de 50px */
+    height: 55px; /* Augmenté de 50px */
+    font-size: 1.8rem; /* Augmenté de 1.5rem */
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
@@ -252,38 +253,40 @@
     color: #81c784;
 }
 
-/* Barre de statistiques */
+/* Barre de statistiques responsive */
 .stats-bar {
     background: var(--card-bg);
     border-radius: 15px;
-    padding: 15px;
-    margin-bottom: 20px;
+    padding: 12px 8px; /* Réduit pour mobile */
+    margin-bottom: 16px; /* Réduit de 20px */
     display: flex;
     justify-content: space-around;
     text-align: center;
     box-shadow: 0 2px 10px var(--shadow);
-    flex-wrap: wrap;
-    gap: 10px;
+    flex-wrap: nowrap; /* Forcer sur une ligne */
+    gap: 5px; /* Réduit de 10px */
 }
 
 .stat-item {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    min-width: 80px;
+    gap: 4px; /* Réduit de 5px */
+    min-width: 70px; /* Réduit de 80px */
+    flex: 1; /* Distribution égale */
 }
 
 .stat-value {
-    font-size: 1.5rem;
+    font-size: 1.3rem; /* Réduit de 1.5rem */
     font-weight: 700;
     color: var(--accent-blue);
 }
 
 .stat-label {
-    font-size: 0.8rem;
+    font-size: 0.75rem; /* Réduit de 0.8rem */
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px; /* Réduit de 0.5px */
+    line-height: 1.2;
 }
 
 /* Spinner de chargement */
