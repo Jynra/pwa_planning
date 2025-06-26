@@ -1,5 +1,6 @@
 /**
  * Application principale de Planning de Travail - PWA
+ * Version améliorée avec persistance renforcée
  */
 class PlanningApp {
     constructor() {
@@ -14,7 +15,118 @@ class PlanningApp {
         this.bindEvents();
         this.updateCurrentMonth();
         this.applyTheme();
-        this.loadSavedData();
+        
+        // Initialisation avec chargement automatique amélioré
+        this.initializeApp();
+    }
+
+    /**
+     * Initialisation complète de l'application
+     */
+    async initializeApp() {
+        console.log('🚀 Initialisation de Planning de Travail...');
+        
+        // Vérifier la disponibilité du stockage
+        if (!this.dataManager.isStorageAvailable()) {
+            this.showError('Stockage local non disponible. Les données ne pourront pas être sauvegardées.');
+            this.showNoData();
+            return;
+        }
+
+        // Afficher les stats de stockage en console
+        const stats = this.dataManager.getStorageStats();
+        console.log('📊 Stats stockage:', stats);
+
+        // Tenter de charger les données sauvegardées
+        this.loadSavedDataWithFeedback();
+    }
+
+    /**
+     * Charge les données avec feedback utilisateur amélioré
+     */
+    loadSavedDataWithFeedback() {
+        console.log('📂 Tentative de chargement du planning sauvegardé...');
+        this.showLoading();
+        
+        // Petit délai pour l'UX
+        setTimeout(() => {
+            try {
+                const data = this.dataManager.loadSavedData();
+                
+                if (data && data.length > 0) {
+                    this.planningData = data;
+                    this.processDataWithValidation();
+                    
+                    const stats = this.dataManager.getStorageStats();
+                    this.showSaveIndicator(`📂 Planning restauré (${stats.dataCount} entrées)`);
+                    console.log('✅ Planning chargé avec succès');
+                } else {
+                    console.log('📋 Aucun planning sauvegardé trouvé');
+                    this.showNoDataWithHelp();
+                }
+            } catch (error) {
+                console.error('❌ Erreur lors du chargement:', error);
+                this.showError('Erreur lors du chargement du planning sauvegardé');
+                this.showNoDataWithHelp();
+            }
+        }, 300);
+    }
+
+    /**
+     * Traitement des données avec validation
+     */
+    processDataWithValidation() {
+        if (!this.planningData || this.planningData.length === 0) {
+            this.showNoDataWithHelp();
+            return;
+        }
+
+        try {
+            // Reconstituer les objets Date si c'est des chaînes ISO
+            this.planningData = this.planningData.map(entry => {
+                if (entry.dateObj && typeof entry.dateObj === 'string') {
+                    entry.dateObj = new Date(entry.dateObj);
+                } else if (!entry.dateObj && entry.date) {
+                    entry.dateObj = this.dataManager.parseDate(entry.date);
+                }
+                return entry;
+            });
+
+            // Filtrer les entrées avec des dates invalides
+            const validData = this.planningData.filter(entry => 
+                entry.dateObj && !isNaN(entry.dateObj.getTime())
+            );
+
+            if (validData.length !== this.planningData.length) {
+                console.warn(`⚠️ ${this.planningData.length - validData.length} entrées avec dates invalides ignorées`);
+                this.planningData = validData;
+            }
+
+            if (this.planningData.length === 0) {
+                this.showNoDataWithHelp();
+                return;
+            }
+
+            // Organiser et afficher
+            this.weekManager.organizeWeeks(this.planningData);
+            
+            if (!this.weekManager.hasWeeks()) {
+                this.showNoDataWithHelp();
+                return;
+            }
+            
+            this.weekManager.findCurrentWeek();
+            this.displayWeek();
+            this.showPlanning();
+            this.updateFooter();
+            
+            console.log(`✅ Planning affiché: ${this.planningData.length} entrées sur ${this.weekManager.getWeeks().length} semaines`);
+            
+        } catch (error) {
+            console.error('❌ Erreur lors du traitement des données:', error);
+            this.showError('Erreur lors du traitement du planning');
+            this.showNoDataWithHelp();
+        }
     }
 
     /**
@@ -51,7 +163,7 @@ class PlanningApp {
     bindEvents() {
         this.csvFileInput.addEventListener('change', (e) => this.handleFileLoad(e));
         this.todayBtn.addEventListener('click', () => this.goToCurrentWeek());
-        this.resetBtn.addEventListener('click', () => this.resetPlanning());
+        this.resetBtn.addEventListener('click', () => this.resetPlanningWithConfirm());
         this.themeToggle.addEventListener('click', () => this.toggleTheme());
         this.prevWeekBtn.addEventListener('click', () => this.navigateWeek(-1));
         this.nextWeekBtn.addEventListener('click', () => this.navigateWeek(1));
@@ -62,6 +174,28 @@ class PlanningApp {
             mediaQuery.addListener(() => this.handleAutoTheme());
             this.handleAutoTheme();
         }
+
+        // Gestion de la visibilité de la page (retour depuis arrière-plan)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                this.handlePageVisible();
+            }
+        });
+    }
+
+    /**
+     * Gestion du retour de visibilité de la page
+     */
+    handlePageVisible() {
+        // Vérifier si les données sont toujours cohérentes
+        if (this.planningData.length > 0) {
+            const stats = this.dataManager.getStorageStats();
+            if (!stats.hasData) {
+                console.warn('⚠️ Données perdues, rechargement...');
+                this.loadSavedDataWithFeedback();
+            }
+        }
+        this.updateCurrentMonth();
     }
 
     /**
@@ -108,27 +242,46 @@ class PlanningApp {
     }
 
     /**
-     * Gestion des données
+     * Affiche un message d'erreur
      */
-    loadSavedData() {
-        const data = this.dataManager.loadSavedData();
-        if (data) {
-            this.planningData = data;
-            this.processData();
-            this.showSaveIndicator('📂 Planning chargé');
-        } else {
-            this.showNoData();
-        }
+    showError(message) {
+        console.error('❌', message);
+        this.showSaveIndicator(`❌ ${message}`, 4000);
     }
 
-    showSaveIndicator(message = '💾 Planning sauvegardé') {
+    /**
+     * Affiche l'indicateur de sauvegarde avec durée personnalisable
+     */
+    showSaveIndicator(message = '💾 Planning sauvegardé', duration = 2000) {
         this.saveIndicator.textContent = message;
         this.saveIndicator.classList.add('show');
         setTimeout(() => {
             this.saveIndicator.classList.remove('show');
-        }, 2000);
+        }, duration);
     }
 
+    /**
+     * Reset avec confirmation
+     */
+    resetPlanningWithConfirm() {
+        const stats = this.dataManager.getStorageStats();
+        
+        if (stats.hasData) {
+            const message = `Êtes-vous sûr de vouloir effacer le planning ?\n\n` +
+                          `Dernière sauvegarde: ${stats.lastSaved}\n` +
+                          `Entrées: ${stats.dataCount}`;
+                          
+            if (confirm(message)) {
+                this.resetPlanning();
+            }
+        } else {
+            this.resetPlanning();
+        }
+    }
+
+    /**
+     * Reset du planning
+     */
     resetPlanning() {
         this.showLoading();
         
@@ -137,20 +290,26 @@ class PlanningApp {
         this.weekManager.reset();
         this.dataManager.clearData();
         
+        // Reset de l'input file
+        if (this.csvFileInput) {
+            this.csvFileInput.value = '';
+        }
+        
         // Afficher l'écran vide après un délai
         setTimeout(() => {
-            this.showNoData();
+            this.showNoDataWithHelp();
             this.showSaveIndicator('🔄 Planning effacé');
         }, 500);
     }
 
     /**
-     * Gestion des fichiers CSV
+     * Gestion des fichiers CSV avec sauvegarde automatique
      */
     async handleFileLoad(event) {
         const file = event.target.files[0];
         if (!file) return;
 
+        console.log(`📁 Import fichier: ${file.name} (${Math.round(file.size / 1024)}KB)`);
         this.showLoading();
         
         try {
@@ -161,43 +320,32 @@ class PlanningApp {
                 throw new Error('Aucune donnée valide trouvée dans le fichier CSV');
             }
             
-            this.processData();
-            this.dataManager.saveData(this.planningData);
-            this.showSaveIndicator('📁 CSV importé et sauvegardé');
+            // Sauvegarder immédiatement
+            const saved = this.dataManager.saveData(this.planningData);
+            
+            this.processDataWithValidation();
+            
+            if (saved) {
+                this.showSaveIndicator(`📁 CSV importé et sauvegardé (${this.planningData.length} entrées)`);
+            } else {
+                this.showSaveIndicator(`⚠️ CSV importé mais sauvegarde échouée`, 3000);
+            }
+            
         } catch (error) {
-            alert('Erreur lors du chargement du fichier: ' + error.message);
-            this.showNoData();
+            console.error('❌ Erreur import:', error);
+            this.showError(`Erreur lors du chargement: ${error.message}`);
+            this.showNoDataWithHelp();
+            
+            // Reset de l'input en cas d'erreur
+            event.target.value = '';
         }
     }
 
     /**
-     * Traitement des données
+     * Traitement des données (inchangé mais avec meilleure gestion d'erreurs)
      */
     processData() {
-        if (!this.planningData || this.planningData.length === 0) {
-            this.showNoData();
-            return;
-        }
-
-        // Ajouter dateObj aux données existantes si manquant
-        this.planningData = this.planningData.map(entry => {
-            if (!entry.dateObj && entry.date) {
-                entry.dateObj = this.dataManager.parseDate(entry.date);
-            }
-            return entry;
-        });
-
-        this.weekManager.organizeWeeks(this.planningData);
-        
-        if (!this.weekManager.hasWeeks()) {
-            this.showNoData();
-            return;
-        }
-        
-        this.weekManager.findCurrentWeek();
-        this.displayWeek();
-        this.showPlanning();
-        this.updateFooter();
+        this.processDataWithValidation();
     }
 
     /**
@@ -216,12 +364,12 @@ class PlanningApp {
     }
 
     /**
-     * Affichage de la semaine courante
+     * Affichage de la semaine courante (inchangé)
      */
     displayWeek() {
         const week = this.weekManager.getCurrentWeek();
         if (!week || !this.planningData || this.planningData.length === 0) {
-            this.showNoData();
+            this.showNoDataWithHelp();
             return;
         }
         
@@ -502,5 +650,37 @@ class PlanningApp {
         this.weekNavigation.style.display = 'none';
         this.footer.style.display = 'none';
         this.statsBar.style.display = 'none';
+    }
+
+    /**
+     * Affichage amélioré quand pas de données
+     */
+    showNoDataWithHelp() {
+        this.showNoData();
+        
+        // Ajouter des conseils utiles dans le message no-data
+        const noDataElement = this.noData;
+        if (noDataElement) {
+            const stats = this.dataManager.getStorageStats();
+            let helpText = '';
+            
+            if (stats.hasData) {
+                helpText = `<p>Données détectées mais non valides</p>
+                           <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px;">
+                           Dernière sauvegarde: ${stats.lastSaved}</p>`;
+            } else {
+                helpText = `<p>Importez un fichier CSV pour commencer</p>
+                           <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px;">
+                           Format: date,horaire,poste,taches</p>`;
+            }
+            
+            // Ne modifier que le texte, pas la structure
+            const existingIcon = noDataElement.querySelector('.no-data-icon');
+            const existingTitle = noDataElement.querySelector('h3');
+            
+            if (existingTitle) {
+                existingTitle.nextElementSibling.innerHTML = helpText;
+            }
+        }
     }
 }
