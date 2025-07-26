@@ -1,7 +1,7 @@
 /**
  * Gestionnaire d'édition des horaires - Planning de Travail PWA
  * Fichier: assets/js/EditManager.js
- * CORRECTION: IDs nettoyés pour éviter les erreurs querySelector
+ * CORRECTION: setSavingState et validation des sélecteurs CSS
  */
 class EditManager {
     constructor(planningApp) {
@@ -518,10 +518,18 @@ class EditManager {
     }
 
     /**
-     * Marque le bouton comme en cours de sauvegarde
+     * CORRECTION: Marque le bouton comme en cours de sauvegarde
+     * Utilise un sélecteur plus robuste pour éviter les erreurs avec les IDs complexes
      */
     setSavingState(dayId, isSaving) {
-        const saveBtn = document.querySelector(`#${dayId} .edit-btn.save`);
+        // CORRECTION: Utiliser getElementById au lieu de querySelector avec un sélecteur complexe
+        const dayCard = document.getElementById(dayId);
+        if (!dayCard) {
+            console.warn(`⚠️ Carte de jour non trouvée pour ${dayId}`);
+            return;
+        }
+        
+        const saveBtn = dayCard.querySelector('.edit-btn.save');
         if (saveBtn) {
             if (isSaving) {
                 saveBtn.classList.add('saving');
@@ -532,6 +540,8 @@ class EditManager {
                 saveBtn.textContent = '💾 Enregistrer';
                 saveBtn.disabled = false;
             }
+        } else {
+            console.warn(`⚠️ Bouton de sauvegarde non trouvé dans ${dayId}`);
         }
     }
 
@@ -670,7 +680,7 @@ class EditManager {
      * Suggère l'horaire pour le prochain créneau
      */
     getSuggestedNextSlot(dayId) {
-        const existingInputs = document.querySelectorAll(`#${dayId} .schedule-end`);
+        const existingInputs = document.querySelectorAll(`#${CSS.escape(dayId)} .schedule-end`);
         if (existingInputs.length === 0) {
             return { start: '14:00', end: '18:00' };
         }
