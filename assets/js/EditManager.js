@@ -1,6 +1,7 @@
 /**
  * Gestionnaire d'édition des horaires - Planning de Travail PWA
  * Fichier: assets/js/EditManager.js
+ * CORRECTION: IDs nettoyés pour éviter les erreurs querySelector
  */
 class EditManager {
     constructor(planningApp) {
@@ -12,6 +13,16 @@ class EditManager {
             maxHoursPerDay: 24,
             minBreakBetweenSlots: 30 // minutes
         };
+    }
+
+    /**
+     * CORRECTION: Nettoie un ID pour qu'il soit valide CSS
+     */
+    sanitizeId(str) {
+        return str
+            .replace(/\s+/g, '-')        // Remplace espaces par tirets
+            .replace(/[^a-zA-Z0-9-_]/g, '') // Supprime caractères spéciaux
+            .toLowerCase();               // En minuscules
     }
 
     /**
@@ -163,9 +174,9 @@ class EditManager {
         html += this.renderRestToggle(dayId, isCurrentlyRest);
         
         // Conteneur des horaires
-        html += `<div id="schedules-container-${dayId}" class="schedules-container ${isCurrentlyRest ? 'hidden' : ''}">`;
+        html += `<div id="schedules-container-${this.sanitizeId(dayId)}" class="schedules-container ${isCurrentlyRest ? 'hidden' : ''}">`;
         html += '<div class="edit-section-title">🕒 Horaires de la journée</div>';
-        html += `<div id="schedules-list-${dayId}">`;
+        html += `<div id="schedules-list-${this.sanitizeId(dayId)}">`;
         
         existingSchedules.forEach((schedule, index) => {
             html += this.renderScheduleInputGroup(dayId, schedule, index, existingSchedules.length > 1);
@@ -186,7 +197,8 @@ class EditManager {
      * Bascule le mode repos
      */
     toggleRestMode(dayId, isRest) {
-        const container = document.getElementById(`schedules-container-${dayId}`);
+        const cleanId = this.sanitizeId(dayId);
+        const container = document.getElementById(`schedules-container-${cleanId}`);
         if (container) {
             if (isRest) {
                 container.classList.add('hidden');
@@ -207,7 +219,8 @@ class EditManager {
      * Ajoute un nouveau créneau horaire
      */
     addScheduleSlot(dayId) {
-        const schedulesList = document.getElementById(`schedules-list-${dayId}`);
+        const cleanId = this.sanitizeId(dayId);
+        const schedulesList = document.getElementById(`schedules-list-${cleanId}`);
         if (!schedulesList) return;
         
         const currentSlots = schedulesList.querySelectorAll('.schedule-input-group').length;
@@ -238,7 +251,8 @@ class EditManager {
      * Supprime un créneau horaire
      */
     removeScheduleSlot(dayId, index) {
-        const groupToRemove = document.getElementById(`schedule-group-${dayId}-${index}`);
+        const cleanId = this.sanitizeId(dayId);
+        const groupToRemove = document.getElementById(`schedule-group-${cleanId}-${index}`);
         if (groupToRemove) {
             groupToRemove.remove();
             this.reindexScheduleGroups(dayId);
@@ -333,15 +347,17 @@ class EditManager {
     }
 
     /**
-     * Extrait les données du formulaire d'édition
+     * CORRECTION: Extrait les données du formulaire d'édition avec IDs nettoyés
      */
     extractEditData(dayId) {
         const dayCard = document.getElementById(dayId);
         if (!dayCard) return null;
         
-        const isRest = dayCard.querySelector(`#rest-${dayId}`)?.checked || false;
-        const location = dayCard.querySelector(`#location-${dayId}`)?.value?.trim() || '';
-        const tasks = dayCard.querySelector(`#tasks-${dayId}`)?.value?.trim() || '';
+        const cleanId = this.sanitizeId(dayId);
+        
+        const isRest = dayCard.querySelector(`#rest-${cleanId}`)?.checked || false;
+        const location = dayCard.querySelector(`#location-${cleanId}`)?.value?.trim() || '';
+        const tasks = dayCard.querySelector(`#tasks-${cleanId}`)?.value?.trim() || '';
         
         const schedules = [];
         if (!isRest) {
@@ -481,6 +497,8 @@ class EditManager {
             el.classList.remove('edit-error');
         });
         
+        const cleanId = this.sanitizeId(dayId);
+        
         // Ajouter les nouveaux surlignages
         errors.forEach(error => {
             if (error.includes('heure')) {
@@ -489,11 +507,11 @@ class EditManager {
                 });
             }
             if (error.includes('lieu')) {
-                const locationInput = dayCard.querySelector(`#location-${dayId}`);
+                const locationInput = dayCard.querySelector(`#location-${cleanId}`);
                 if (locationInput) locationInput.classList.add('edit-error');
             }
             if (error.includes('tâches')) {
-                const tasksInput = dayCard.querySelector(`#tasks-${dayId}`);
+                const tasksInput = dayCard.querySelector(`#tasks-${cleanId}`);
                 if (tasksInput) tasksInput.classList.add('edit-error');
             }
         });
@@ -551,14 +569,16 @@ class EditManager {
     }
 
     /**
-     * Génère le toggle repos
+     * CORRECTION: Génère le toggle repos avec ID nettoyé
      */
     renderRestToggle(dayId, isRest) {
+        const cleanId = this.sanitizeId(dayId);
+        
         return `
             <div class="rest-toggle">
-                <input type="checkbox" id="rest-${dayId}" class="rest-checkbox" ${isRest ? 'checked' : ''}
+                <input type="checkbox" id="rest-${cleanId}" class="rest-checkbox" ${isRest ? 'checked' : ''}
                        onchange="window.planningApp.editManager.toggleRestMode('${dayId}', this.checked)">
-                <label for="rest-${dayId}" class="rest-label">🛌 Jour de repos</label>
+                <label for="rest-${cleanId}" class="rest-label">🛌 Jour de repos</label>
             </div>
         `;
     }
@@ -567,8 +587,10 @@ class EditManager {
      * Génère un groupe d'inputs pour un créneau
      */
     renderScheduleInputGroup(dayId, schedule, index, canRemove) {
+        const cleanId = this.sanitizeId(dayId);
+        
         return `
-            <div class="schedule-input-group" id="schedule-group-${dayId}-${index}">
+            <div class="schedule-input-group" id="schedule-group-${cleanId}-${index}">
                 <input type="time" class="schedule-input schedule-start" value="${schedule.start}" 
                        data-day="${dayId}" data-index="${index}">
                 <span class="schedule-separator">→</span>
@@ -594,17 +616,19 @@ class EditManager {
     }
 
     /**
-     * Génère la section d'informations
+     * CORRECTION: Génère la section d'informations avec IDs nettoyés
      */
     renderInfoSection(dayId, location, tasks) {
+        const cleanId = this.sanitizeId(dayId);
+        
         return `
             <div class="info-section">
                 <label class="info-label">📍 Lieu de travail :</label>
-                <input type="text" class="info-input" id="location-${dayId}" value="${location}" 
+                <input type="text" class="info-input" id="location-${cleanId}" value="${location}" 
                        placeholder="Bureau, Site A, Télétravail, Congé...">
                 
                 <label class="info-label">✅ Tâches et activités :</label>
-                <input type="text" class="info-input" id="tasks-${dayId}" value="${tasks}"
+                <input type="text" class="info-input" id="tasks-${cleanId}" value="${tasks}"
                        placeholder="Réunions, formation, développement, maintenance...">
             </div>
         `;
@@ -614,8 +638,9 @@ class EditManager {
      * Définit les valeurs par défaut pour un jour de repos
      */
     setRestValues(dayId) {
-        const locationInput = document.getElementById(`location-${dayId}`);
-        const tasksInput = document.getElementById(`tasks-${dayId}`);
+        const cleanId = this.sanitizeId(dayId);
+        const locationInput = document.getElementById(`location-${cleanId}`);
+        const tasksInput = document.getElementById(`tasks-${cleanId}`);
         
         if (locationInput && !locationInput.value.toLowerCase().includes('congé')) {
             locationInput.value = 'Congé';
@@ -629,8 +654,9 @@ class EditManager {
      * Définit les valeurs par défaut pour un jour de travail
      */
     setWorkValues(dayId) {
-        const locationInput = document.getElementById(`location-${dayId}`);
-        const tasksInput = document.getElementById(`tasks-${dayId}`);
+        const cleanId = this.sanitizeId(dayId);
+        const locationInput = document.getElementById(`location-${cleanId}`);
+        const tasksInput = document.getElementById(`tasks-${cleanId}`);
         
         if (locationInput && locationInput.value.toLowerCase().includes('congé')) {
             locationInput.value = 'Bureau';
@@ -671,12 +697,13 @@ class EditManager {
      * Réindexe les groupes de créneaux
      */
     reindexScheduleGroups(dayId) {
-        const schedulesList = document.getElementById(`schedules-list-${dayId}`);
+        const cleanId = this.sanitizeId(dayId);
+        const schedulesList = document.getElementById(`schedules-list-${cleanId}`);
         if (!schedulesList) return;
         
         const groups = schedulesList.querySelectorAll('.schedule-input-group');
         groups.forEach((group, newIndex) => {
-            group.id = `schedule-group-${dayId}-${newIndex}`;
+            group.id = `schedule-group-${cleanId}-${newIndex}`;
             
             const inputs = group.querySelectorAll('.schedule-input');
             inputs.forEach(input => {

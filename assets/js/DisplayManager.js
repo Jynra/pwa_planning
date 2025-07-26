@@ -1,6 +1,7 @@
 /**
  * Gestionnaire d'affichage - Planning de Travail PWA
  * Fichier: assets/js/DisplayManager.js
+ * CORRECTION: Rendu de cartes de jour temporaire sans EditRenderer
  */
 class DisplayManager {
     constructor(app) {
@@ -192,14 +193,120 @@ class DisplayManager {
         } else {
             daysWithData.forEach(day => {
                 const isToday = day.date.getTime() === today.getTime();
-                // Utiliser le nouveau renderer avec support d'édition
-                html += this.app.editRenderer.renderDayCardWithEdit(day.name, day.date, day.data, isToday);
+                // CORRECTION: Utiliser renderDayCard au lieu de editRenderer
+                html += this.renderDayCard(day.name, day.date, day.data, isToday);
             });
         }
         
         if (this.app.planningDisplay) {
             this.app.planningDisplay.innerHTML = html;
         }
+    }
+
+    /**
+     * CORRECTION: Rendu d'une carte de jour (temporaire sans EditRenderer)
+     */
+    renderDayCard(dayName, date, dayData, isToday) {
+        const dayNumber = date.getDate();
+        const dayId = `day-${date.toDateString()}`;
+        const isEditing = this.app.editManager.isEditing(dayId);
+        const hasWork = dayData && dayData.entries.length > 0;
+        
+        let isRestDay = false;
+        if (hasWork) {
+            const timeInfo = TimeUtils.extractTimeInfo(dayData.entries[0]);
+            isRestDay = timeInfo.isRest;
+        }
+        
+        let html = `<div class="day-card ${isEditing ? 'editing' : ''}" id="${dayId}">`;
+        
+        // En-tête
+        html += `<div class="day-header">`;
+        html += `<div><div class="day-name">${dayName}</div><div class="day-number">${dayNumber}</div></div>`;
+        html += `<div class="day-badges">`;
+        
+        if (isToday && !isEditing) {
+            html += `<div class="today-badge">Aujourd'hui</div>`;
+        } else if ((isRestDay || !hasWork) && !isEditing) {
+            html += `<div class="rest-badge">Repos</div>`;
+        } else if (hasWork && !isEditing) {
+            // Badges normaux
+            const timeSlots = TimeUtils.organizeTimeSlots(dayData.entries);
+            if (timeSlots.length > 2) {
+                html += `<div class="multiple-badge">Coupure</div>`;
+            } else if (timeSlots.some(slot => TimeUtils.isNightShift(slot.start, slot.end))) {
+                html += `<div class="night-badge">Nuit</div>`;
+            } else if (timeSlots.length === 2) {
+                html += `<div class="multiple-badge">Coupure</div>`;
+            }
+        }
+        
+        html += `</div></div>`;
+        
+        // Contrôles d'édition
+        html += `<div class="edit-controls">`;
+        html += this.app.editManager.renderEditControls(dayId);
+        html += `</div>`;
+        
+        // Contenu principal
+        if (isEditing) {
+            html += this.app.editManager.renderEditForm(dayId, dayData);
+        } else {
+            // Mode visualisation
+            if (hasWork && !isRestDay) {
+                html += `<div class="schedule-section">`;
+                html += `<div class="schedule-title"><span class="info-icon">🕒</span>Horaires de la journée :</div>`;
+                
+                let totalHours = 0;
+                const timeSlots = TimeUtils.organizeTimeSlots(dayData.entries);
+                
+                timeSlots.forEach(slot => {
+                    const isNightShift = TimeUtils.isNightShift(slot.start, slot.end);
+                    const duration = TimeUtils.calculateSlotDuration(slot.start, slot.end);
+                    totalHours += duration;
+                    
+                    html += `<div class="time-slot ${isNightShift ? 'night-slot' : ''}">`;
+                    html += `<div class="time-dot ${isNightShift ? 'night-dot' : ''}"></div>`;
+                    html += `<div class="time-text">${slot.start}-${slot.end}</div>`;
+                    html += `<div class="duration-badge">${duration.toFixed(1)}h</div>`;
+                    html += `</div>`;
+                });
+                
+                if (totalHours > 0) {
+                    html += `<div class="total-hours">💚 Total: ${totalHours.toFixed(1)}h</div>`;
+                }
+                html += `</div>`;
+            }
+            
+            // Informations du jour
+            if (hasWork) {
+                html += `<div class="info-section">`;
+                const uniqueInfo = new Set();
+                
+                dayData.entries.forEach(entry => {
+                    if (entry.poste && entry.poste.toLowerCase() !== 'congé') {
+                        const poste = entry.poste;
+                        if (!uniqueInfo.has(`poste:${poste}`)) {
+                            html += `<div class="info-item"><span class="info-icon">📍</span>${poste}</div>`;
+                            uniqueInfo.add(`poste:${poste}`);
+                        }
+                    }
+                    
+                    if (entry.taches && entry.taches.toLowerCase() !== 'jour de repos') {
+                        const taches = entry.taches;
+                        if (!uniqueInfo.has(`taches:${taches}`)) {
+                            html += `<div class="info-item"><span class="info-icon">✅</span>${taches}</div>`;
+                            uniqueInfo.add(`taches:${taches}`);
+                        }
+                    }
+                });
+                
+                html += `</div>`;
+            }
+        }
+        
+        html += `</div>`;
+        return html;
     }
 
     /**
