@@ -1,560 +1,485 @@
 /**
- * Styles pour l'édition des horaires - Planning de Travail PWA
- * Fichier: assets/css/edit.css
+ * edit.css - Styles pour l'interface d'édition des horaires
+ * Styles modulaires pour l'édition en ligne des plannings
  */
 
-/* ========================================
-   CONTRÔLES D'ÉDITION
-   ======================================== */
+/* ======================
+   INTERFACE D'ÉDITION
+   ====================== */
 
-.edit-controls {
+.edit-interface {
+    background: var(--background-light);
+    border: 2px solid var(--accent-blue);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 10px 0;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 20px rgba(100, 181, 246, 0.2);
+}
+
+.dark-theme .edit-interface {
+    background: var(--background-dark);
+    border-color: var(--accent-blue);
+    box-shadow: 0 4px 20px rgba(100, 181, 246, 0.3);
+}
+
+/* Header de l'édition */
+.edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.edit-header h4 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.edit-actions {
     display: flex;
     gap: 10px;
-    align-items: center;
-    margin-bottom: 15px;
 }
 
-.edit-btn {
-    background: var(--accent-blue);
-    color: white;
-    border: none;
-    border-radius: 20px;
+/* Boutons d'action */
+.btn-save,
+.btn-cancel {
     padding: 8px 16px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 5px;
+    border: none;
+    border-radius: 8px;
     font-weight: 500;
-    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
 }
 
-.edit-btn:hover {
-    background: #42a5f5;
+.btn-save {
+    background: var(--accent-green);
+    color: white;
+}
+
+.btn-save:hover {
+    background: #66bb6a;
     transform: translateY(-1px);
 }
 
-.edit-btn.cancel {
+.btn-cancel {
     background: var(--accent-red);
+    color: white;
 }
 
-.edit-btn.cancel:hover {
-    background: #e57373;
+.btn-cancel:hover {
+    background: #f44336;
+    transform: translateY(-1px);
 }
 
-.edit-btn.save {
-    background: var(--accent-green);
+/* ======================
+   CONTRÔLES D'ÉDITION
+   ====================== */
+
+.edit-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
-.edit-btn.save:hover {
-    background: #66bb6a;
-}
-
-.edit-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-}
-
-/* ========================================
-   ZONE D'ÉDITION
-   ======================================== */
-
-.schedule-edit {
-    background: #f8f9fa;
-    border-radius: 15px;
-    padding: 15px;
-    margin-bottom: 15px;
-    border: 2px solid var(--border-color);
-    transition: all 0.3s ease;
-}
-
-.dark-theme .schedule-edit {
-    background: #374151;
-    border-color: var(--border-color);
-}
-
-.edit-section-title {
-    font-weight: 500;
-    color: var(--text-secondary);
-    margin-bottom: 10px;
+/* Contrôle jour de repos */
+.rest-day-control {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 0.9rem;
-}
-
-/* ========================================
-   INPUTS HORAIRES
-   ======================================== */
-
-.schedule-input-group {
-    display: flex;
     gap: 10px;
-    align-items: center;
-    margin-bottom: 10px;
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 10px;
-    transition: all 0.3s ease;
+    padding: 15px;
+    background: var(--background-card);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
 }
 
-.dark-theme .schedule-input-group {
-    background: rgba(0, 0, 0, 0.2);
+.rest-day-control input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--accent-orange);
+    cursor: pointer;
 }
 
-.schedule-input-group:hover {
-    background: rgba(100, 181, 246, 0.1);
-}
-
-.schedule-input {
-    flex: 1;
-    padding: 10px;
-    border: 2px solid var(--border-color);
-    border-radius: 10px;
-    font-size: 0.9rem;
-    background: var(--card-bg);
+.rest-day-control label {
+    font-weight: 500;
     color: var(--text-primary);
-    outline: none;
-    transition: all 0.3s ease;
-    min-width: 80px;
+    cursor: pointer;
+    user-select: none;
 }
 
-.schedule-input:focus {
+/* Contrôles de saisie */
+.location-control,
+.tasks-control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.location-control label,
+.tasks-control label {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.location-control input,
+.tasks-control textarea {
+    padding: 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--background-light);
+    color: var(--text-primary);
+    font-family: inherit;
+    transition: border-color 0.2s ease;
+}
+
+.location-control input:focus,
+.tasks-control textarea:focus {
+    outline: none;
     border-color: var(--accent-blue);
     box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.1);
 }
 
-.schedule-input.invalid {
-    border-color: var(--accent-red);
-    background-color: #ffebee;
-    animation: shake 0.3s ease;
+.tasks-control textarea {
+    min-height: 80px;
+    resize: vertical;
 }
 
-.dark-theme .schedule-input.invalid {
-    background-color: #3d2a2a;
+/* ======================
+   CONTRÔLE DES HORAIRES
+   ====================== */
+
+.schedules-control {
+    background: var(--background-card);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
 }
 
-.schedule-separator {
-    margin: 0 8px;
-    color: var(--text-secondary);
-    font-weight: 600;
+.schedules-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.schedules-header h5 {
+    margin: 0;
+    color: var(--text-primary);
     font-size: 1.1rem;
+    font-weight: 600;
 }
 
-/* ========================================
-   BOUTONS D'AJOUT/SUPPRESSION
-   ======================================== */
-
-.add-slot-btn {
-    background: var(--accent-green);
+.btn-add-schedule {
+    background: var(--accent-blue);
     color: white;
     border: none;
-    border-radius: 50%;
-    width: 35px;
-    height: 35px;
-    font-size: 1.2rem;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background-color 0.2s ease;
+}
+
+.btn-add-schedule:hover {
+    background: #42a5f5;
+}
+
+/* Liste des créneaux */
+.schedules-list {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px rgba(129, 199, 132, 0.3);
+    flex-direction: column;
+    gap: 12px;
 }
 
-.add-slot-btn:hover {
-    background: #66bb6a;
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(129, 199, 132, 0.4);
-}
-
-.remove-slot-btn {
-    background: var(--accent-red);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.remove-slot-btn:hover {
-    background: #e57373;
-    transform: scale(1.1);
-}
-
-.add-slot-container {
-    text-align: center;
-    margin: 15px 0;
-    padding: 10px;
-    border: 2px dashed var(--border-color);
-    border-radius: 10px;
-    transition: all 0.3s ease;
-}
-
-.add-slot-container:hover {
-    border-color: var(--accent-green);
-    background: rgba(129, 199, 132, 0.05);
-}
-
-.add-slot-text {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin-top: 5px;
-}
-
-/* ========================================
-   TOGGLE REPOS
-   ======================================== */
-
-.rest-toggle {
+/* Créneau horaire individuel */
+.schedule-slot {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 15px;
-    padding: 12px;
-    background: linear-gradient(135deg, rgba(255, 183, 77, 0.1), rgba(255, 183, 77, 0.05));
-    border-radius: 12px;
-    border: 1px solid rgba(255, 183, 77, 0.2);
-    transition: all 0.3s ease;
+    padding: 15px;
+    background: var(--background-light);
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
 }
 
-.dark-theme .rest-toggle {
-    background: linear-gradient(135deg, rgba(255, 183, 77, 0.2), rgba(255, 183, 77, 0.1));
-    border-color: rgba(255, 183, 77, 0.3);
+.schedule-slot:hover {
+    border-color: var(--accent-blue);
+    box-shadow: 0 2px 8px rgba(100, 181, 246, 0.1);
 }
 
-.rest-toggle:hover {
-    background: linear-gradient(135deg, rgba(255, 183, 77, 0.15), rgba(255, 183, 77, 0.08));
-}
-
-.rest-checkbox {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    accent-color: var(--accent-orange);
-    transform: scale(1.2);
-}
-
-.rest-label {
-    cursor: pointer;
-    font-weight: 500;
-    color: var(--text-primary);
-    user-select: none;
+/* Inputs de temps */
+.time-inputs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     flex: 1;
 }
 
-/* ========================================
-   INPUTS D'INFORMATION
-   ======================================== */
-
-.info-input {
-    width: 100%;
-    padding: 12px;
+.time-inputs input[type="time"] {
+    padding: 8px 12px;
     border: 2px solid var(--border-color);
-    border-radius: 10px;
-    font-size: 0.9rem;
-    background: var(--card-bg);
+    border-radius: 6px;
+    background: var(--background-light);
     color: var(--text-primary);
-    margin-bottom: 12px;
-    outline: none;
-    transition: all 0.3s ease;
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    min-width: 100px;
 }
 
-.info-input:focus {
+.time-inputs input[type="time"]:focus {
+    outline: none;
     border-color: var(--accent-blue);
     box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.1);
 }
 
-.info-input::placeholder {
-    color: var(--text-muted);
-    font-style: italic;
+/* États de validation */
+.time-inputs input[type="time"]:invalid {
+    border-color: var(--accent-red);
+    background-color: #ffebee;
 }
 
-.info-label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 500;
+.time-inputs input[type="time"]:valid {
+    border-color: var(--accent-green);
+    background-color: #f1f8e9;
+}
+
+.time-separator {
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-weight: 500;
+    font-size: 1.2rem;
 }
 
-.info-section {
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid var(--border-color);
+/* Bouton de suppression de créneau */
+.btn-remove-schedule {
+    background: var(--accent-red);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+    min-width: 32px;
 }
 
-/* ========================================
-   MESSAGES DE VALIDATION
-   ======================================== */
-
-.validation-message {
-    color: var(--accent-red);
-    font-size: 0.8rem;
-    margin-top: 5px;
-    display: none;
-    padding: 5px 10px;
-    background: rgba(255, 138, 128, 0.1);
-    border-radius: 5px;
-    border-left: 3px solid var(--accent-red);
+.btn-remove-schedule:hover {
+    background: #f44336;
+    transform: scale(1.05);
 }
 
-.validation-message.show {
-    display: block;
-    animation: slideInError 0.3s ease;
-}
+/* ======================
+   MESSAGES D'ÉDITION
+   ====================== */
 
-/* ========================================
-   ÉTATS D'ÉDITION
-   ======================================== */
-
-.day-card.editing {
-    border: 2px solid var(--accent-blue);
-    box-shadow: 0 6px 25px var(--shadow);
-    transform: translateY(-2px);
-}
-
-.day-card.editing .day-header {
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 15px;
-    margin-bottom: 20px;
-}
-
-.schedules-container {
+.edit-error,
+.edit-success {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-weight: 500;
     transition: all 0.3s ease;
-    overflow: hidden;
+    animation: slideDown 0.3s ease;
 }
 
-.schedules-container.hidden {
-    max-height: 0;
-    opacity: 0;
-    margin: 0;
-    padding: 0;
+.edit-error {
+    background: #ffebee;
+    border: 1px solid #ff8a80;
+    color: #d32f2f;
 }
 
-/* ========================================
+.edit-success {
+    background: #e8f5e8;
+    border: 1px solid #81c784;
+    color: #2e7d32;
+}
+
+/* ======================
    ANIMATIONS
-   ======================================== */
+   ====================== */
 
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-2px); }
-    75% { transform: translateX(2px); }
-}
-
-@keyframes slideInError {
-    from { 
-        opacity: 0; 
-        transform: translateY(-10px); 
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
     }
-    to { 
-        opacity: 1; 
-        transform: translateY(0); 
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+        max-height: 0;
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        max-height: 100px;
+    }
 }
 
-.edit-btn.saving {
-    animation: pulse 1s infinite;
-    pointer-events: none;
-}
+/* ======================
+   RESPONSIVE MOBILE
+   ====================== */
 
-/* ========================================
-   RESPONSIVE DESIGN
-   ======================================== */
-
-@media (max-width: 480px) {
-    .edit-controls {
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 12px;
-    }
-    
-    .edit-btn {
-        flex: 1;
-        min-width: 100px;
-        justify-content: center;
-        padding: 10px 12px;
-    }
-    
-    .schedule-input-group {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px;
-        padding: 10px;
-    }
-    
-    .schedule-input {
-        margin-bottom: 0;
-        min-width: unset;
-    }
-    
-    .schedule-separator {
-        align-self: center;
+@media (max-width: 768px) {
+    .edit-interface {
+        padding: 15px;
         margin: 5px 0;
-        transform: rotate(90deg);
     }
-    
-    .schedule-edit {
-        padding: 12px;
+
+    .edit-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
     }
-    
-    .remove-slot-btn {
-        align-self: center;
-        margin-top: 5px;
+
+    .edit-actions {
+        justify-content: center;
+        gap: 15px;
     }
-    
-    .rest-toggle {
-        padding: 10px;
+
+    .btn-save,
+    .btn-cancel {
+        flex: 1;
+        padding: 12px 16px;
+        font-size: 1rem;
+    }
+
+    .schedules-header {
+        flex-direction: column;
         gap: 10px;
+        align-items: stretch;
     }
-    
-    .info-input {
-        padding: 10px;
-    }
-    
-    .add-slot-container {
-        margin: 10px 0;
-        padding: 8px;
-    }
-}
 
-/* Mobile très petit */
-@media (max-width: 360px) {
-    .edit-btn {
-        font-size: 0.8rem;
-        padding: 8px 10px;
-        gap: 3px;
+    .schedule-slot {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
     }
-    
-    .schedule-edit {
-        padding: 10px;
-        margin-bottom: 12px;
-    }
-    
-    .schedule-input {
-        padding: 8px;
-        font-size: 0.85rem;
-    }
-    
-    .add-slot-btn {
-        width: 32px;
-        height: 32px;
-        font-size: 1.1rem;
-    }
-    
-    .remove-slot-btn {
-        width: 28px;
-        height: 28px;
-        font-size: 0.9rem;
-    }
-}
 
-/* Mode paysage mobile */
-@media (orientation: landscape) and (max-height: 500px) {
-    .schedule-edit {
-        padding: 10px;
-        margin-bottom: 10px;
+    .time-inputs {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 15px;
     }
-    
+
+    .time-inputs input[type="time"] {
+        flex: 1;
+        min-width: 120px;
+    }
+
+    .btn-remove-schedule {
+        align-self: center;
+        padding: 8px 16px;
+        min-width: auto;
+    }
+
+    .schedules-control {
+        padding: 15px;
+    }
+
     .edit-controls {
-        margin-bottom: 10px;
-    }
-    
-    .rest-toggle {
-        padding: 8px;
-        margin-bottom: 10px;
-    }
-    
-    .info-section {
-        margin-top: 15px;
-        padding-top: 10px;
+        gap: 15px;
     }
 }
 
-/* ========================================
-   AMÉLIORATIONS ACCESSIBILITÉ
-   ======================================== */
+/* ======================
+   THÈME SOMBRE
+   ====================== */
+
+.dark-theme .schedule-slot {
+    background: var(--background-dark);
+    border-color: var(--border-color-dark);
+}
+
+.dark-theme .schedule-slot:hover {
+    border-color: var(--accent-blue);
+    box-shadow: 0 2px 8px rgba(100, 181, 246, 0.2);
+}
+
+.dark-theme .time-inputs input[type="time"] {
+    background: var(--background-dark);
+    border-color: var(--border-color-dark);
+    color: var(--text-primary-dark);
+}
+
+.dark-theme .time-inputs input[type="time"]:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.2);
+}
+
+.dark-theme .location-control input,
+.dark-theme .tasks-control textarea {
+    background: var(--background-dark);
+    border-color: var(--border-color-dark);
+    color: var(--text-primary-dark);
+}
+
+.dark-theme .rest-day-control {
+    background: var(--background-dark);
+    border-color: var(--border-color-dark);
+}
+
+.dark-theme .schedules-control {
+    background: var(--background-dark);
+    border-color: var(--border-color-dark);
+}
+
+/* ======================
+   ACCESSIBILITÉ
+   ====================== */
 
 /* Focus visible pour navigation clavier */
-.edit-btn:focus-visible,
-.schedule-input:focus-visible,
-.info-input:focus-visible,
-.rest-checkbox:focus-visible {
+.edit-interface *:focus-visible {
     outline: 2px solid var(--accent-blue);
     outline-offset: 2px;
 }
 
-/* Amélioration du contraste */
-@media (prefers-contrast: high) {
-    .schedule-edit {
-        border-width: 3px;
-    }
-    
-    .edit-btn {
-        border: 2px solid currentColor;
-    }
-    
-    .schedule-input {
-        border-width: 3px;
+/* Contraste amélioré pour les labels */
+.edit-controls label {
+    font-weight: 600;
+}
+
+/* Taille de clic minimale pour mobile */
+@media (max-width: 768px) {
+    .btn-save,
+    .btn-cancel,
+    .btn-add-schedule,
+    .btn-remove-schedule {
+        min-height: 44px;
+        min-width: 44px;
     }
 }
 
-/* Réduction des mouvements */
-@media (prefers-reduced-motion: reduce) {
-    .edit-btn,
-    .schedule-input,
-    .add-slot-btn,
-    .remove-slot-btn,
-    .schedule-edit,
-    .day-card.editing {
-        transition: none;
-        animation: none;
-        transform: none;
+/* États de survol pour desktop */
+@media (hover: hover) {
+    .schedule-slot:hover {
+        transform: translateY(-1px);
     }
     
-    .edit-btn:hover,
-    .add-slot-btn:hover,
-    .remove-slot-btn:hover {
-        transform: none;
+    .rest-day-control:hover {
+        background: var(--background-hover);
     }
 }
 
-/* ========================================
-   CLASSES UTILITAIRES
-   ======================================== */
-
-.edit-transition {
+/* Transition fluide pour les changements d'état */
+.schedules-control {
     transition: all 0.3s ease;
 }
 
-.edit-hidden {
-    display: none !important;
-}
-
-.edit-disabled {
-    opacity: 0.5;
-    pointer-events: none;
-}
-
-.edit-highlight {
-    background: rgba(100, 181, 246, 0.1);
-    border-color: var(--accent-blue);
-}
-
-.edit-error {
-    border-color: var(--accent-red) !important;
-    background: rgba(255, 138, 128, 0.1);
+.schedules-control[style*="display: none"] {
+    opacity: 0;
+    transform: scale(0.95);
 }

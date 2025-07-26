@@ -1,409 +1,313 @@
 /**
- * Gestionnaire d'édition des horaires - Planning de Travail PWA
- * Fichier: assets/js/EditManager.js
+ * EditManager.js - Gestion de l'édition des horaires
+ * Contrôle la logique métier de l'édition des plannings
+ * CORRECTION : Utilisation d'IDs nettoyés pour éviter les erreurs querySelector
  */
+
 class EditManager {
-    constructor(planningApp) {
-        this.app = planningApp;
-        this.editingStates = new Map();
-        this.originalData = new Map(); // Sauvegarde pour annulation
-        this.validationRules = {
-            timeFormat: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
-            maxHoursPerDay: 24,
-            minBreakBetweenSlots: 30 // minutes
-        };
+    constructor(dataManager, displayManager) {
+        this.dataManager = dataManager;
+        this.displayManager = displayManager;
+        this.editingStates = new Map(); // dateString -> originalData
+        this.editRenderer = new EditRenderer();
+        
+        console.log('✏️ EditManager initialisé');
     }
 
     /**
-     * Commence l'édition d'un jour
+     * Nettoie un string pour en faire un ID CSS valide
+     * (Même méthode que EditRenderer pour cohérence)
      */
-    startEdit(dayId) {
-        console.log(`✏️ Début édition du jour: ${dayId}`);
-        
-        // Annuler les autres éditions en cours
-        this.cancelAllOtherEdits(dayId);
-        
-        // Sauvegarder l'état original pour pouvoir annuler
-        this.saveOriginalState(dayId);
-        
-        // Marquer ce jour comme en édition
-        this.editingStates.set(dayId, true);
-        
-        // Rafraîchir l'affichage
-        this.app.refreshCurrentWeekDisplay();
-        
-        // Scroll vers le jour en édition et focus
-        this.focusEditingDay(dayId);
-        
-        // Attacher les événements d'édition
-        this.attachEditEvents(dayId);
+    sanitizeId(str) {
+        return str
+            .replace(/\s+/g, '-')        // Remplace espaces par tirets
+            .replace(/[^a-zA-Z0-9-_]/g, '') // Supprime caractères spéciaux
+            .toLowerCase();               // En minuscules
+    }
+
+    /**
+     * Active le mode édition pour un jour
+     * @param {string} dateString - Date au format string (ex: "Mon Jun 24 2025")
+     * @returns {boolean} True si l'édition a été activée avec succès
+     */
+    startEdit(dateString) {
+        try {
+            console.log('✏️ Début édition pour:', dateString);
+            
+            // Vérifier si le jour existe dans les données
+            const dayData = this.findDayData(dateString);
+            if (!dayData) {
+                console.error('❌ Aucune donnée trouvée pour:', dateString);
+                this.displayManager.showMessage('Aucune donnée trouvée pour cette date', 'error');
+                return false;
+            }
+
+            // Vérifier si déjà en cours d'édition
+            if (this.editingStates.has(dateString)) {
+                console.log('⚠️ Édition déjà en cours pour:', dateString);
+                return false;
+            }
+
+            // Sauvegarder l'état original
+            this.editingStates.set(dateString, JSON.parse(JSON.stringify(dayData)));
+
+            // Trouver le conteneur du jour
+            const dayContainer = this.findDayContainer(dateString);
+            if (!dayContainer) {
+                console.error('❌ Conteneur du jour non trouvé pour:', dateString);
+                this.displayManager.showMessage('Conteneur du jour non trouvé', 'error');
+                return false;
+            }
+
+            // Masquer l'affichage normal
+            const normalDisplay = dayContainer.querySelector('.day-content');
+            if (normalDisplay) {
+                normalDisplay.style.display = 'none';
+            }
+
+            // Afficher l'interface d'édition
+            this.editRenderer.renderEditInterface(dayData, dayContainer);
+
+            // Focus sur le premier champ
+            const sanitizedDateStr = this.sanitizeId(dateString);
+            setTimeout(() => {
+                this.editRenderer.focusFirstField(sanitizedDateStr);
+            }, 100);
+
+            console.log('✅ Mode édition activé pour:', dateString);
+            return true;
+
+        } catch (error) {
+            console.error('❌ Erreur lors du démarrage de l\'édition:', error);
+            this.displayManager.showMessage('Erreur lors de l\'activation du mode édition', 'error');
+            return false;
+        }
     }
 
     /**
      * Sauvegarde les modifications d'un jour
+     * @param {string} dateString - Date au format string
+     * @returns {boolean} True si la sauvegarde a réussi
      */
-    async saveEdit(dayId) {
-        console.log(`💾 Sauvegarde du jour: ${dayId}`);
-        
+    saveDay(dateString) {
         try {
-            // Extraire et valider les données
-            const editData = this.extractEditData(dayId);
-            if (!editData) {
-                throw new Error('Impossible d\'extraire les données d\'édition');
-            }
+            console.log('💾 Sauvegarde en cours pour:', dateString);
             
-            const validationResult = this.validateEditData(editData);
-            if (!validationResult.isValid) {
-                this.showValidationErrors(dayId, validationResult.errors);
+            if (!this.editingStates.has(dateString)) {
+                console.error('❌ Aucune édition en cours pour:', dateString);
+                this.displayManager.showMessage('Aucune édition en cours', 'error');
                 return false;
             }
+
+            // Créer l'ID nettoyé pour retrouver l'interface
+            const sanitizedDateStr = this.sanitizeId(dateString);
             
-            // Marquer le bouton comme en cours de sauvegarde
-            this.setSavingState(dayId, true);
-            
-            // Appliquer les modifications aux données
-            await this.applyEditData(dayId, editData);
-            
-            // Sauvegarder en local
-            const saved = this.app.dataManager.saveData(this.app.planningData);
-            
-            // Sortir du mode édition
-            this.editingStates.set(dayId, false);
-            this.originalData.delete(dayId);
-            
+            // Collecter les données depuis l'interface
+            const editData = this.editRenderer.collectEditData(sanitizedDateStr);
+            if (!editData) {
+                console.error('❌ Impossible de collecter les données d\'édition');
+                this.editRenderer.showEditError(sanitizedDateStr, 'Erreur lors de la collecte des données');
+                return false;
+            }
+
+            // Valider les données
+            const validation = this.validateEditData(editData);
+            if (!validation.isValid) {
+                console.error('❌ Données invalides:', validation.errors);
+                this.editRenderer.showEditError(sanitizedDateStr, validation.errors.join(', '));
+                return false;
+            }
+
+            // Mettre à jour les données
+            const success = this.updateDayData(dateString, editData);
+            if (!success) {
+                console.error('❌ Échec de la mise à jour des données');
+                this.editRenderer.showEditError(sanitizedDateStr, 'Erreur lors de la mise à jour');
+                return false;
+            }
+
+            // Quitter le mode édition
+            this.finishEdit(dateString);
+
+            // Sauvegarder dans le localStorage
+            this.dataManager.saveToLocalStorage();
+
             // Rafraîchir l'affichage
-            this.app.refreshCurrentWeekDisplay();
-            
-            // Afficher le message de confirmation
-            const message = saved ? 
-                '💾 Modifications sauvegardées' : 
-                '⚠️ Modifications appliquées (sauvegarde échouée)';
-            this.app.showSaveIndicator(message);
-            
-            console.log('✅ Sauvegarde réussie');
+            this.displayManager.displayCurrentWeek();
+
+            // Afficher un message de succès
+            this.displayManager.showMessage('Modifications sauvegardées avec succès', 'success');
+
+            console.log('✅ Sauvegarde terminée pour:', dateString);
             return true;
-            
+
         } catch (error) {
             console.error('❌ Erreur lors de la sauvegarde:', error);
-            this.app.showError(`Erreur: ${error.message}`);
+            this.displayManager.showMessage('Erreur lors de la sauvegarde', 'error');
             return false;
-        } finally {
-            this.setSavingState(dayId, false);
         }
     }
 
     /**
      * Annule l'édition d'un jour
+     * @param {string} dateString - Date au format string
+     * @returns {boolean} True si l'annulation a réussi
      */
-    cancelEdit(dayId) {
-        console.log(`❌ Annulation édition du jour: ${dayId}`);
-        
-        // Restaurer l'état original si disponible
-        if (this.originalData.has(dayId)) {
-            this.restoreOriginalState(dayId);
-        }
-        
-        // Sortir du mode édition
-        this.editingStates.set(dayId, false);
-        this.originalData.delete(dayId);
-        
-        // Rafraîchir l'affichage
-        this.app.refreshCurrentWeekDisplay();
-        
-        this.app.showSaveIndicator('🔄 Modifications annulées');
-    }
-
-    /**
-     * Vérifie si un jour est en cours d'édition
-     */
-    isEditing(dayId) {
-        return this.editingStates.get(dayId) || false;
-    }
-
-    /**
-     * Génère le HTML pour les contrôles d'édition
-     */
-    renderEditControls(dayId) {
-        const isEditing = this.isEditing(dayId);
-        
-        if (isEditing) {
-            return `
-                <button class="edit-btn save" onclick="window.planningApp.editManager.saveEdit('${dayId}')">
-                    💾 Enregistrer
-                </button>
-                <button class="edit-btn cancel" onclick="window.planningApp.editManager.cancelEdit('${dayId}')">
-                    ❌ Annuler
-                </button>
-            `;
-        } else {
-            return `
-                <button class="edit-btn" onclick="window.planningApp.editManager.startEdit('${dayId}')">
-                    ✏️ Modifier
-                </button>
-            `;
-        }
-    }
-
-    /**
-     * Génère le formulaire d'édition
-     */
-    renderEditForm(dayId, dayData) {
-        const location = dayData?.entries?.[0]?.poste || 'Bureau';
-        const tasks = dayData?.entries?.[0]?.taches || 'Travail';
-        
-        // Détecter si c'est actuellement un jour de repos
-        const isCurrentlyRest = this.isRestDay(dayData);
-        
-        // Extraire les horaires existants
-        const existingSchedules = this.extractExistingSchedules(dayData, isCurrentlyRest);
-        
-        let html = '<div class="schedule-edit">';
-        
-        // Toggle repos
-        html += this.renderRestToggle(dayId, isCurrentlyRest);
-        
-        // Conteneur des horaires
-        html += `<div id="schedules-container-${dayId}" class="schedules-container ${isCurrentlyRest ? 'hidden' : ''}">`;
-        html += '<div class="edit-section-title">🕒 Horaires de la journée</div>';
-        html += `<div id="schedules-list-${dayId}">`;
-        
-        existingSchedules.forEach((schedule, index) => {
-            html += this.renderScheduleInputGroup(dayId, schedule, index, existingSchedules.length > 1);
-        });
-        
-        html += '</div>';
-        html += this.renderAddSlotButton(dayId);
-        html += '</div>'; // Fin schedules-container
-        
-        // Section informations
-        html += this.renderInfoSection(dayId, location, tasks);
-        
-        html += '</div>';
-        return html;
-    }
-
-    /**
-     * Bascule le mode repos
-     */
-    toggleRestMode(dayId, isRest) {
-        const container = document.getElementById(`schedules-container-${dayId}`);
-        if (container) {
-            if (isRest) {
-                container.classList.add('hidden');
-            } else {
-                container.classList.remove('hidden');
-            }
-        }
-        
-        // Mettre à jour les champs automatiquement
-        if (isRest) {
-            this.setRestValues(dayId);
-        } else {
-            this.setWorkValues(dayId);
-        }
-    }
-
-    /**
-     * Ajoute un nouveau créneau horaire
-     */
-    addScheduleSlot(dayId) {
-        const schedulesList = document.getElementById(`schedules-list-${dayId}`);
-        if (!schedulesList) return;
-        
-        const currentSlots = schedulesList.querySelectorAll('.schedule-input-group').length;
-        
-        // Déterminer l'heure de début suggérée
-        const suggestedTime = this.getSuggestedNextSlot(dayId);
-        
-        const newGroup = document.createElement('div');
-        newGroup.innerHTML = this.renderScheduleInputGroup(
-            dayId, 
-            suggestedTime, 
-            currentSlots, 
-            true
-        );
-        
-        schedulesList.appendChild(newGroup.firstElementChild);
-        
-        // Focus sur le premier input du nouveau créneau
-        const newInput = newGroup.querySelector('.schedule-start');
-        if (newInput) {
-            setTimeout(() => newInput.focus(), 100);
-        }
-        
-        console.log(`➕ Nouveau créneau ajouté pour ${dayId}`);
-    }
-
-    /**
-     * Supprime un créneau horaire
-     */
-    removeScheduleSlot(dayId, index) {
-        const groupToRemove = document.getElementById(`schedule-group-${dayId}-${index}`);
-        if (groupToRemove) {
-            groupToRemove.remove();
-            this.reindexScheduleGroups(dayId);
-            console.log(`➖ Créneau ${index} supprimé pour ${dayId}`);
-        }
-    }
-
-    // ========================================
-    // MÉTHODES PRIVÉES
-    // ========================================
-
-    /**
-     * Annule toutes les autres éditions en cours
-     */
-    cancelAllOtherEdits(currentDayId) {
-        this.editingStates.forEach((isEditing, dayId) => {
-            if (isEditing && dayId !== currentDayId) {
-                this.cancelEdit(dayId);
-            }
-        });
-    }
-
-    /**
-     * Sauvegarde l'état original pour pouvoir annuler
-     */
-    saveOriginalState(dayId) {
-        const dateStr = dayId.replace('day-', '');
-        const targetDate = new Date(dateStr);
-        targetDate.setHours(0, 0, 0, 0);
-        
-        const originalEntries = this.app.planningData.filter(entry => {
-            const entryDate = new Date(entry.dateObj);
-            entryDate.setHours(0, 0, 0, 0);
-            return entryDate.getTime() === targetDate.getTime();
-        });
-        
-        this.originalData.set(dayId, JSON.parse(JSON.stringify(originalEntries)));
-    }
-
-    /**
-     * Restaure l'état original
-     */
-    restoreOriginalState(dayId) {
-        const originalEntries = this.originalData.get(dayId);
-        if (!originalEntries) return;
-        
-        const dateStr = dayId.replace('day-', '');
-        const targetDate = new Date(dateStr);
-        targetDate.setHours(0, 0, 0, 0);
-        
-        // Supprimer les entrées actuelles pour cette date
-        this.app.planningData = this.app.planningData.filter(entry => {
-            const entryDate = new Date(entry.dateObj);
-            entryDate.setHours(0, 0, 0, 0);
-            return entryDate.getTime() !== targetDate.getTime();
-        });
-        
-        // Restaurer les entrées originales
-        this.app.planningData.push(...originalEntries);
-        
-        // Réorganiser les semaines
-        this.app.weekManager.organizeWeeks(this.app.planningData);
-    }
-
-    /**
-     * Focus sur le jour en édition
-     */
-    focusEditingDay(dayId) {
-        setTimeout(() => {
-            const dayCard = document.getElementById(dayId);
-            if (dayCard) {
-                dayCard.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'center' 
-                });
-                
-                // Focus sur le premier input éditable
-                const firstInput = dayCard.querySelector('.schedule-input, .info-input');
-                if (firstInput) {
-                    setTimeout(() => firstInput.focus(), 300);
-                }
-            }
-        }, 100);
-    }
-
-    /**
-     * Attache les événements d'édition
-     */
-    attachEditEvents(dayId) {
-        // Cette méthode peut être étendue pour ajouter des événements spécifiques
-        // comme la validation en temps réel, les raccourcis clavier, etc.
-    }
-
-    /**
-     * Extrait les données du formulaire d'édition
-     */
-    extractEditData(dayId) {
-        const dayCard = document.getElementById(dayId);
-        if (!dayCard) return null;
-        
-        const isRest = dayCard.querySelector(`#rest-${dayId}`)?.checked || false;
-        const location = dayCard.querySelector(`#location-${dayId}`)?.value?.trim() || '';
-        const tasks = dayCard.querySelector(`#tasks-${dayId}`)?.value?.trim() || '';
-        
-        const schedules = [];
-        if (!isRest) {
-            const startInputs = dayCard.querySelectorAll('.schedule-start');
-            const endInputs = dayCard.querySelectorAll('.schedule-end');
+    cancelEdit(dateString) {
+        try {
+            console.log('❌ Annulation édition pour:', dateString);
             
-            for (let i = 0; i < startInputs.length; i++) {
-                const start = startInputs[i].value;
-                const end = endInputs[i].value;
-                if (start && end) {
-                    schedules.push({ start, end });
+            if (!this.editingStates.has(dateString)) {
+                console.error('❌ Aucune édition en cours pour:', dateString);
+                return false;
+            }
+
+            // Quitter le mode édition sans sauvegarder
+            this.finishEdit(dateString);
+
+            // Rafraîchir l'affichage pour restaurer l'état original
+            this.displayManager.displayCurrentWeek();
+
+            this.displayManager.showMessage('Modifications annulées', 'info');
+
+            console.log('✅ Édition annulée pour:', dateString);
+            return true;
+
+        } catch (error) {
+            console.error('❌ Erreur lors de l\'annulation:', error);
+            this.displayManager.showMessage('Erreur lors de l\'annulation', 'error');
+            return false;
+        }
+    }
+
+    /**
+     * Termine le mode édition (nettoie l'état)
+     * @param {string} dateString - Date au format string
+     */
+    finishEdit(dateString) {
+        // Supprimer l'état d'édition
+        this.editingStates.delete(dateString);
+
+        // Supprimer l'interface d'édition
+        const sanitizedDateStr = this.sanitizeId(dateString);
+        this.editRenderer.removeEditInterface(sanitizedDateStr);
+
+        console.log('🔚 Mode édition terminé pour:', dateString);
+    }
+
+    /**
+     * Trouve les données d'un jour
+     * @param {string} dateString - Date au format string
+     * @returns {Object|null} Données du jour ou null
+     */
+    findDayData(dateString) {
+        try {
+            const targetDate = new Date(dateString);
+            const allData = this.dataManager.getAllData();
+            
+            return allData.find(item => {
+                const itemDate = new Date(item.date);
+                return itemDate.getTime() === targetDate.getTime();
+            });
+        } catch (error) {
+            console.error('❌ Erreur lors de la recherche des données du jour:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Trouve le conteneur DOM d'un jour
+     * @param {string} dateString - Date au format string
+     * @returns {HTMLElement|null} Conteneur du jour ou null
+     */
+    findDayContainer(dateString) {
+        try {
+            const targetDate = new Date(dateString);
+            const dayContainers = document.querySelectorAll('.day');
+            
+            for (let container of dayContainers) {
+                const dayData = container.dayData;
+                if (dayData && dayData.date.getTime() === targetDate.getTime()) {
+                    return container;
                 }
             }
+            
+            return null;
+        } catch (error) {
+            console.error('❌ Erreur lors de la recherche du conteneur:', error);
+            return null;
         }
-        
-        return { isRest, location, tasks, schedules };
     }
 
     /**
      * Valide les données d'édition
+     * @param {Object} editData - Données à valider
+     * @returns {Object} Résultat de validation {isValid, errors}
      */
     validateEditData(editData) {
         const errors = [];
-        
-        if (!editData.isRest) {
-            // Validation horaires
-            if (editData.schedules.length === 0) {
-                errors.push('Au moins un créneau horaire requis');
-            }
-            
-            for (let i = 0; i < editData.schedules.length; i++) {
-                const schedule = editData.schedules[i];
-                
-                if (!this.validationRules.timeFormat.test(schedule.start)) {
-                    errors.push(`Heure de début invalide pour le créneau ${i + 1}`);
+
+        try {
+            // Validation des horaires si ce n'est pas un jour de repos
+            if (!editData.isRestDay && editData.schedules.length > 0) {
+                for (let schedule of editData.schedules) {
+                    if (schedule && schedule.includes('-')) {
+                        const [start, end] = schedule.split('-');
+                        
+                        // Vérifier le format
+                        const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+                        if (!timeRegex.test(start)) {
+                            errors.push(`Heure de début invalide: ${start}`);
+                        }
+                        if (!timeRegex.test(end)) {
+                            errors.push(`Heure de fin invalide: ${end}`);
+                        }
+                        
+                        // Vérifier la cohérence
+                        if (timeRegex.test(start) && timeRegex.test(end)) {
+                            const startTime = new Date(`2000-01-01T${start}:00`);
+                            const endTime = new Date(`2000-01-01T${end}:00`);
+                            
+                            // Gérer les horaires de nuit (ex: 22:00-06:00)
+                            if (startTime > endTime) {
+                                // Vérifier si c'est un horaire de nuit valide
+                                const startHour = parseInt(start.split(':')[0]);
+                                const endHour = parseInt(end.split(':')[0]);
+                                
+                                if (!(startHour >= 18 && endHour <= 12)) {
+                                    errors.push(`Horaire invalide: ${schedule} (si c'est un horaire de nuit, l'heure de début doit être >= 18h et l'heure de fin <= 12h)`);
+                                }
+                            }
+                        }
+                    }
                 }
-                
-                if (!this.validationRules.timeFormat.test(schedule.end)) {
-                    errors.push(`Heure de fin invalide pour le créneau ${i + 1}`);
-                }
-                
-                if (schedule.start === schedule.end) {
-                    errors.push(`Le créneau ${i + 1} ne peut pas avoir la même heure de début et de fin`);
-                }
             }
-            
-            // Validation durée totale
-            const totalHours = this.calculateTotalHours(editData.schedules);
-            if (totalHours > this.validationRules.maxHoursPerDay) {
-                errors.push(`Durée totale trop élevée: ${totalHours.toFixed(1)}h (max: ${this.validationRules.maxHoursPerDay}h)`);
+
+            // Validation du lieu (optionnelle mais avec limite de caractères)
+            if (editData.location && editData.location.length > 100) {
+                errors.push('Le lieu ne peut pas dépasser 100 caractères');
             }
+
+            // Validation des tâches (optionnelle mais avec limite de caractères)
+            if (editData.tasks && editData.tasks.length > 500) {
+                errors.push('La description des tâches ne peut pas dépasser 500 caractères');
+            }
+
+            // Validation spécifique : pas d'horaires si jour de repos
+            if (editData.isRestDay && editData.schedules.length > 0) {
+                errors.push('Un jour de repos ne peut pas avoir d\'horaires');
+            }
+
+            // Validation spécifique : au moins un horaire si pas jour de repos
+            if (!editData.isRestDay && editData.schedules.length === 0) {
+                errors.push('Un jour de travail doit avoir au moins un horaire');
+            }
+
+        } catch (error) {
+            console.error('❌ Erreur lors de la validation:', error);
+            errors.push('Erreur lors de la validation des données');
         }
-        
-        // Validation champs obligatoires
-        if (!editData.location) {
-            errors.push('Le lieu est obligatoire');
-        }
-        
-        if (!editData.tasks) {
-            errors.push('La description des tâches est obligatoire');
-        }
-        
+
         return {
             isValid: errors.length === 0,
             errors: errors
@@ -411,328 +315,267 @@ class EditManager {
     }
 
     /**
-     * Applique les données d'édition au planning
+     * Met à jour les données d'un jour
+     * @param {string} dateString - Date au format string
+     * @param {Object} editData - Nouvelles données
+     * @returns {boolean} True si la mise à jour a réussi
      */
-    async applyEditData(dayId, editData) {
-        const dateStr = dayId.replace('day-', '');
-        const targetDate = new Date(dateStr);
-        targetDate.setHours(0, 0, 0, 0);
-        
-        // Supprimer les anciennes entrées pour cette date
-        this.app.planningData = this.app.planningData.filter(entry => {
-            const entryDate = new Date(entry.dateObj);
-            entryDate.setHours(0, 0, 0, 0);
-            return entryDate.getTime() !== targetDate.getTime();
-        });
-        
-        // Ajouter les nouvelles entrées
-        if (editData.isRest) {
-            this.app.planningData.push({
-                date: targetDate.toISOString().split('T')[0],
-                dateObj: targetDate,
-                horaire: 'Repos',
-                poste: editData.location || 'Congé',
-                taches: editData.tasks || 'Jour de repos'
-            });
-        } else {
-            editData.schedules.forEach(schedule => {
-                this.app.planningData.push({
-                    date: targetDate.toISOString().split('T')[0],
-                    dateObj: targetDate,
-                    horaire: `${schedule.start}-${schedule.end}`,
-                    poste: editData.location || 'Bureau',
-                    taches: editData.tasks || 'Travail'
-                });
-            });
-        }
-        
-        // Réorganiser les semaines
-        this.app.weekManager.organizeWeeks(this.app.planningData);
-        
-        console.log(`✅ Données appliquées pour ${dayId}:`, editData);
-    }
-
-    /**
-     * Affiche les erreurs de validation
-     */
-    showValidationErrors(dayId, errors) {
-        // Afficher dans l'interface
-        errors.forEach(error => {
-            console.warn('⚠️ Validation:', error);
-        });
-        
-        // Créer un message d'erreur groupé
-        const errorMessage = `Erreurs de validation:\n${errors.map(e => `• ${e}`).join('\n')}`;
-        alert(errorMessage);
-        
-        // Surligner les champs en erreur
-        this.highlightErrorFields(dayId, errors);
-    }
-
-    /**
-     * Surligne les champs en erreur
-     */
-    highlightErrorFields(dayId, errors) {
-        const dayCard = document.getElementById(dayId);
-        if (!dayCard) return;
-        
-        // Supprimer les anciens surlignages
-        dayCard.querySelectorAll('.edit-error').forEach(el => {
-            el.classList.remove('edit-error');
-        });
-        
-        // Ajouter les nouveaux surlignages
-        errors.forEach(error => {
-            if (error.includes('heure')) {
-                dayCard.querySelectorAll('.schedule-input').forEach(input => {
-                    input.classList.add('edit-error');
-                });
+    updateDayData(dateString, editData) {
+        try {
+            const dayData = this.findDayData(dateString);
+            if (!dayData) {
+                console.error('❌ Données du jour non trouvées pour mise à jour');
+                return false;
             }
-            if (error.includes('lieu')) {
-                const locationInput = dayCard.querySelector(`#location-${dayId}`);
-                if (locationInput) locationInput.classList.add('edit-error');
-            }
-            if (error.includes('tâches')) {
-                const tasksInput = dayCard.querySelector(`#tasks-${dayId}`);
-                if (tasksInput) tasksInput.classList.add('edit-error');
-            }
-        });
-    }
 
-    /**
-     * Marque le bouton comme en cours de sauvegarde
-     */
-    setSavingState(dayId, isSaving) {
-        const saveBtn = document.querySelector(`#${dayId} .edit-btn.save`);
-        if (saveBtn) {
-            if (isSaving) {
-                saveBtn.classList.add('saving');
-                saveBtn.textContent = '⏳ Enregistrement...';
-                saveBtn.disabled = true;
+            // Mettre à jour les propriétés
+            dayData.isRestDay = editData.isRestDay;
+            dayData.location = editData.location;
+            dayData.tasks = editData.tasks;
+
+            // Mettre à jour les horaires
+            if (editData.isRestDay) {
+                dayData.schedules = [];
+                dayData.originalHoraire = 'Repos';
             } else {
-                saveBtn.classList.remove('saving');
-                saveBtn.textContent = '💾 Enregistrer';
-                saveBtn.disabled = false;
+                dayData.schedules = editData.schedules.filter(s => s && s.trim());
+                dayData.originalHoraire = dayData.schedules.join(' | ');
             }
-        }
-    }
 
-    /**
-     * Vérifie si un jour est en repos
-     */
-    isRestDay(dayData) {
-        if (!dayData || !dayData.entries || dayData.entries.length === 0) {
+            // Recalculer les propriétés dérivées
+            this.recalculateDayProperties(dayData);
+
+            console.log('✅ Données mises à jour:', dayData);
+            return true;
+
+        } catch (error) {
+            console.error('❌ Erreur lors de la mise à jour des données:', error);
             return false;
         }
-        
-        const timeInfo = TimeUtils.extractTimeInfo(dayData.entries[0]);
-        return timeInfo.isRest;
     }
 
     /**
-     * Extrait les horaires existants
+     * Recalcule les propriétés dérivées d'un jour
+     * @param {Object} dayData - Données du jour à recalculer
      */
-    extractExistingSchedules(dayData, isRest) {
-        if (isRest || !dayData?.entries) {
-            return [{ start: '08:00', end: '17:00' }];
-        }
-        
-        const schedules = [];
-        dayData.entries.forEach(entry => {
-            const timeInfo = TimeUtils.extractTimeInfo(entry);
-            if (timeInfo.slots && timeInfo.slots.length > 0) {
-                timeInfo.slots.forEach(slot => {
-                    schedules.push({ start: slot.start, end: slot.end });
-                });
+    recalculateDayProperties(dayData) {
+        try {
+            if (dayData.isRestDay || !dayData.schedules || dayData.schedules.length === 0) {
+                dayData.totalHours = 0;
+                dayData.hasMultipleSlots = false;
+                dayData.isNightShift = false;
+            } else {
+                // Recalculer avec TimeUtils
+                const timeUtils = window.TimeUtils;
+                if (timeUtils) {
+                    dayData.totalHours = timeUtils.calculateTotalHours(dayData.schedules);
+                    dayData.hasMultipleSlots = dayData.schedules.length > 1;
+                    dayData.isNightShift = dayData.schedules.some(schedule => 
+                        timeUtils.isNightShift(schedule)
+                    );
+                } else {
+                    console.error('❌ TimeUtils non disponible');
+                    dayData.totalHours = 0;
+                    dayData.hasMultipleSlots = dayData.schedules.length > 1;
+                    dayData.isNightShift = false;
+                }
             }
-        });
-        
-        return schedules.length > 0 ? schedules : [{ start: '08:00', end: '17:00' }];
-    }
-
-    /**
-     * Génère le toggle repos
-     */
-    renderRestToggle(dayId, isRest) {
-        return `
-            <div class="rest-toggle">
-                <input type="checkbox" id="rest-${dayId}" class="rest-checkbox" ${isRest ? 'checked' : ''}
-                       onchange="window.planningApp.editManager.toggleRestMode('${dayId}', this.checked)">
-                <label for="rest-${dayId}" class="rest-label">🛌 Jour de repos</label>
-            </div>
-        `;
-    }
-
-    /**
-     * Génère un groupe d'inputs pour un créneau
-     */
-    renderScheduleInputGroup(dayId, schedule, index, canRemove) {
-        return `
-            <div class="schedule-input-group" id="schedule-group-${dayId}-${index}">
-                <input type="time" class="schedule-input schedule-start" value="${schedule.start}" 
-                       data-day="${dayId}" data-index="${index}">
-                <span class="schedule-separator">→</span>
-                <input type="time" class="schedule-input schedule-end" value="${schedule.end}"
-                       data-day="${dayId}" data-index="${index}">
-                ${canRemove ? 
-                  `<button class="remove-slot-btn" onclick="window.planningApp.editManager.removeScheduleSlot('${dayId}', ${index})" title="Supprimer ce créneau">−</button>` : 
-                  ''}
-            </div>
-        `;
-    }
-
-    /**
-     * Génère le bouton d'ajout de créneau
-     */
-    renderAddSlotButton(dayId) {
-        return `
-            <div class="add-slot-container">
-                <button class="add-slot-btn" onclick="window.planningApp.editManager.addScheduleSlot('${dayId}')" title="Ajouter un créneau">+</button>
-                <div class="add-slot-text">Ajouter un créneau</div>
-            </div>
-        `;
-    }
-
-    /**
-     * Génère la section d'informations
-     */
-    renderInfoSection(dayId, location, tasks) {
-        return `
-            <div class="info-section">
-                <label class="info-label">📍 Lieu de travail :</label>
-                <input type="text" class="info-input" id="location-${dayId}" value="${location}" 
-                       placeholder="Bureau, Site A, Télétravail, Congé...">
-                
-                <label class="info-label">✅ Tâches et activités :</label>
-                <input type="text" class="info-input" id="tasks-${dayId}" value="${tasks}"
-                       placeholder="Réunions, formation, développement, maintenance...">
-            </div>
-        `;
-    }
-
-    /**
-     * Définit les valeurs par défaut pour un jour de repos
-     */
-    setRestValues(dayId) {
-        const locationInput = document.getElementById(`location-${dayId}`);
-        const tasksInput = document.getElementById(`tasks-${dayId}`);
-        
-        if (locationInput && !locationInput.value.toLowerCase().includes('congé')) {
-            locationInput.value = 'Congé';
-        }
-        if (tasksInput && !tasksInput.value.toLowerCase().includes('repos')) {
-            tasksInput.value = 'Jour de repos';
+        } catch (error) {
+            console.error('❌ Erreur lors du recalcul des propriétés:', error);
         }
     }
 
     /**
-     * Définit les valeurs par défaut pour un jour de travail
+     * Vérifie si un jour est en cours d'édition
+     * @param {string} dateString - Date au format string
+     * @returns {boolean} True si en cours d'édition
      */
-    setWorkValues(dayId) {
-        const locationInput = document.getElementById(`location-${dayId}`);
-        const tasksInput = document.getElementById(`tasks-${dayId}`);
-        
-        if (locationInput && locationInput.value.toLowerCase().includes('congé')) {
-            locationInput.value = 'Bureau';
-        }
-        if (tasksInput && tasksInput.value.toLowerCase().includes('repos')) {
-            tasksInput.value = 'Travail';
-        }
+    isEditing(dateString) {
+        return this.editingStates.has(dateString);
     }
 
     /**
-     * Suggère l'horaire pour le prochain créneau
+     * Annule toutes les éditions en cours
+     * @returns {number} Nombre d'éditions annulées
      */
-    getSuggestedNextSlot(dayId) {
-        const existingInputs = document.querySelectorAll(`#${dayId} .schedule-end`);
-        if (existingInputs.length === 0) {
-            return { start: '14:00', end: '18:00' };
-        }
+    cancelAllEdits() {
+        const editingDates = Array.from(this.editingStates.keys());
+        let cancelledCount = 0;
         
-        // Prendre la dernière heure de fin et ajouter une pause
-        const lastEndTime = existingInputs[existingInputs.length - 1].value;
-        const [hours, minutes] = lastEndTime.split(':').map(Number);
-        const startMinutes = hours * 60 + minutes + 30; // 30 min de pause
-        
-        const newStartHour = Math.floor(startMinutes / 60);
-        const newStartMin = startMinutes % 60;
-        
-        if (newStartHour >= 24) {
-            return { start: '14:00', end: '18:00' };
-        }
-        
-        const startTime = `${newStartHour.toString().padStart(2, '0')}:${newStartMin.toString().padStart(2, '0')}`;
-        const endTime = `${(newStartHour + 4).toString().padStart(2, '0')}:${newStartMin.toString().padStart(2, '0')}`;
-        
-        return { start: startTime, end: endTime };
-    }
-
-    /**
-     * Réindexe les groupes de créneaux
-     */
-    reindexScheduleGroups(dayId) {
-        const schedulesList = document.getElementById(`schedules-list-${dayId}`);
-        if (!schedulesList) return;
-        
-        const groups = schedulesList.querySelectorAll('.schedule-input-group');
-        groups.forEach((group, newIndex) => {
-            group.id = `schedule-group-${dayId}-${newIndex}`;
-            
-            const inputs = group.querySelectorAll('.schedule-input');
-            inputs.forEach(input => {
-                input.setAttribute('data-index', newIndex);
-            });
-            
-            const removeBtn = group.querySelector('.remove-slot-btn');
-            if (removeBtn) {
-                removeBtn.setAttribute('onclick', `window.planningApp.editManager.removeScheduleSlot('${dayId}', ${newIndex})`);
+        for (let dateString of editingDates) {
+            if (this.cancelEdit(dateString)) {
+                cancelledCount++;
             }
-        });
+        }
+        
+        console.log(`❌ ${cancelledCount} éditions annulées`);
+        return cancelledCount;
     }
 
     /**
-     * Calcule le nombre total d'heures
+     * Obtient le nombre d'éditions en cours
+     * @returns {number} Nombre d'éditions actives
      */
-    calculateTotalHours(schedules) {
-        let total = 0;
-        schedules.forEach(schedule => {
-            const startMinutes = this.timeToMinutes(schedule.start);
-            let endMinutes = this.timeToMinutes(schedule.end);
-            
-            // Gestion des horaires de nuit
-            if (startMinutes > endMinutes) {
-                endMinutes += 24 * 60;
+    getEditingCount() {
+        return this.editingStates.size;
+    }
+
+    /**
+     * Obtient la liste des dates en cours d'édition
+     * @returns {Array} Liste des dates en cours d'édition
+     */
+    getEditingDates() {
+        return Array.from(this.editingStates.keys());
+    }
+
+    /**
+     * Sauvegarde rapide de toutes les éditions en cours
+     * @returns {Object} Résultat {success: number, failed: number}
+     */
+    saveAllEdits() {
+        const editingDates = Array.from(this.editingStates.keys());
+        let successCount = 0;
+        let failedCount = 0;
+        
+        for (let dateString of editingDates) {
+            if (this.saveDay(dateString)) {
+                successCount++;
+            } else {
+                failedCount++;
             }
+        }
+        
+        console.log(`💾 Sauvegarde multiple: ${successCount} réussies, ${failedCount} échouées`);
+        
+        return {
+            success: successCount,
+            failed: failedCount
+        };
+    }
+
+    /**
+     * Duplique les horaires d'un jour vers un autre
+     * @param {string} sourceDateString - Date source
+     * @param {string} targetDateString - Date cible
+     * @returns {boolean} True si la duplication a réussi
+     */
+    duplicateDay(sourceDateString, targetDateString) {
+        try {
+            const sourceData = this.findDayData(sourceDateString);
+            const targetData = this.findDayData(targetDateString);
             
-            total += (endMinutes - startMinutes) / 60;
-        });
-        return total;
+            if (!sourceData || !targetData) {
+                console.error('❌ Données source ou cible non trouvées');
+                return false;
+            }
+
+            // Copier les propriétés
+            targetData.isRestDay = sourceData.isRestDay;
+            targetData.location = sourceData.location;
+            targetData.tasks = sourceData.tasks;
+            targetData.schedules = [...sourceData.schedules];
+            targetData.originalHoraire = sourceData.originalHoraire;
+
+            // Recalculer les propriétés dérivées
+            this.recalculateDayProperties(targetData);
+
+            // Sauvegarder
+            this.dataManager.saveToLocalStorage();
+
+            // Rafraîchir l'affichage
+            this.displayManager.displayCurrentWeek();
+
+            console.log(`✅ Jour dupliqué de ${sourceDateString} vers ${targetDateString}`);
+            return true;
+
+        } catch (error) {
+            console.error('❌ Erreur lors de la duplication:', error);
+            return false;
+        }
     }
 
     /**
-     * Convertit une heure en minutes
+     * Réinitialise un jour (remet à zéro)
+     * @param {string} dateString - Date au format string
+     * @returns {boolean} True si la réinitialisation a réussi
      */
-    timeToMinutes(timeStr) {
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        return hours * 60 + minutes;
-    }
+    resetDay(dateString) {
+        try {
+            const dayData = this.findDayData(dateString);
+            if (!dayData) {
+                console.error('❌ Données du jour non trouvées');
+                return false;
+            }
 
-    /**
-     * Nettoie les états d'édition
-     */
-    cleanup() {
-        this.editingStates.clear();
-        this.originalData.clear();
+            // Réinitialiser les propriétés
+            dayData.isRestDay = false;
+            dayData.location = '';
+            dayData.tasks = '';
+            dayData.schedules = [];
+            dayData.originalHoraire = '';
+            dayData.totalHours = 0;
+            dayData.hasMultipleSlots = false;
+            dayData.isNightShift = false;
+
+            // Sauvegarder
+            this.dataManager.saveToLocalStorage();
+
+            // Rafraîchir l'affichage
+            this.displayManager.displayCurrentWeek();
+
+            console.log(`✅ Jour réinitialisé: ${dateString}`);
+            return true;
+
+        } catch (error) {
+            console.error('❌ Erreur lors de la réinitialisation:', error);
+            return false;
+        }
     }
 
     /**
      * Obtient les statistiques d'édition
+     * @returns {Object} Statistiques
      */
-    getEditStats() {
+    getEditingStats() {
         return {
-            currentEditing: Array.from(this.editingStates.entries()).filter(([_, isEditing]) => isEditing).length,
-            totalSessions: this.editingStates.size,
-            hasUnsavedChanges: this.originalData.size > 0
+            currentlyEditing: this.editingStates.size,
+            editingDates: Array.from(this.editingStates.keys()),
+            hasUnsavedChanges: this.editingStates.size > 0
         };
     }
+
+    /**
+     * Vérifie s'il y a des modifications non sauvegardées
+     * @returns {boolean} True s'il y a des modifications en attente
+     */
+    hasUnsavedChanges() {
+        return this.editingStates.size > 0;
+    }
+
+    /**
+     * Nettoie les états d'édition orphelins
+     * Supprime les états d'édition qui n'ont plus d'interface correspondante
+     */
+    cleanupOrphanedStates() {
+        const editingDates = Array.from(this.editingStates.keys());
+        let cleanedCount = 0;
+        
+        for (let dateString of editingDates) {
+            const sanitizedDateStr = this.sanitizeId(dateString);
+            if (!this.editRenderer.hasEditInterface(sanitizedDateStr)) {
+                this.editingStates.delete(dateString);
+                cleanedCount++;
+                console.log('🧹 État d\'édition orphelin supprimé:', dateString);
+            }
+        }
+        
+        if (cleanedCount > 0) {
+            console.log(`🧹 ${cleanedCount} états orphelins nettoyés`);
+        }
+        
+        return cleanedCount;
+    }
 }
+
+// Export pour usage global
+window.EditManager = EditManager;
