@@ -1,467 +1,569 @@
 /**
- * EditRenderer.js - Gestion du rendu des éléments d'édition
- * Génère et gère l'interface utilisateur pour l'édition des horaires
- * CORRECTION : IDs nettoyés pour éviter les erreurs querySelector
+ * Gestionnaire de rendu pour l'édition - Planning de Travail PWA
+ * Fichier: assets/js/EditRenderer.js
  */
-
 class EditRenderer {
-    constructor() {
-        console.log('✨ EditRenderer initialisé');
+    constructor(editManager) {
+        this.editManager = editManager;
+        this.app = editManager.app;
     }
 
     /**
-     * Nettoie un string pour en faire un ID CSS valide
-     * Supprime espaces et caractères spéciaux
+     * Modifie le rendu d'une carte de jour pour inclure l'édition
      */
-    sanitizeId(str) {
-        return str
-            .replace(/\s+/g, '-')        // Remplace espaces par tirets
-            .replace(/[^a-zA-Z0-9-_]/g, '') // Supprime caractères spéciaux
-            .toLowerCase();               // En minuscules
-    }
-
-    /**
-     * Génère l'interface d'édition pour un jour
-     * @param {Object} day - Données du jour à éditer
-     * @param {HTMLElement} container - Conteneur où insérer l'interface
-     */
-    renderEditInterface(day, container) {
-        const dateStr = day.date.toDateString();
-        const sanitizedDateStr = this.sanitizeId(dateStr);
+    renderDayCardWithEdit(dayName, date, dayData, isToday) {
+        const dayNumber = date.getDate();
+        const dayId = `day-${date.toDateString()}`;
+        const isEditing = this.editManager.isEditing(dayId);
+        const hasWork = dayData && dayData.entries.length > 0;
         
-        // Debug
-        console.log('🔧 Génération interface édition pour:', dateStr, '→', sanitizedDateStr);
-        
-        const editHTML = `
-            <div class="edit-interface" id="edit-${sanitizedDateStr}">
-                <div class="edit-header">
-                    <h4>✏️ Modification ${day.dayName} ${day.date.getDate()}</h4>
-                    <div class="edit-actions">
-                        <button class="btn-save" onclick="planningApp.editManager.saveDay('${dateStr}')">
-                            💾 Enregistrer
-                        </button>
-                        <button class="btn-cancel" onclick="planningApp.editManager.cancelEdit('${dateStr}')">
-                            ❌ Annuler
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="edit-controls">
-                    <!-- Checkbox jour de repos avec ID nettoyé -->
-                    <div class="rest-day-control">
-                        <input type="checkbox" 
-                               id="rest-day-${sanitizedDateStr}" 
-                               ${day.isRestDay ? 'checked' : ''}>
-                        <label for="rest-day-${sanitizedDateStr}">
-                            ☑️ Jour de repos
-                        </label>
-                    </div>
-                    
-                    <!-- Lieu de travail -->
-                    <div class="location-control">
-                        <label for="location-${sanitizedDateStr}">📍 Lieu :</label>
-                        <input type="text" 
-                               id="location-${sanitizedDateStr}" 
-                               value="${day.location || ''}" 
-                               placeholder="Bureau, Site A...">
-                    </div>
-                    
-                    <!-- Tâches -->
-                    <div class="tasks-control">
-                        <label for="tasks-${sanitizedDateStr}">📝 Tâches :</label>
-                        <textarea id="tasks-${sanitizedDateStr}" 
-                                  placeholder="Description des tâches...">${day.tasks || ''}</textarea>
-                    </div>
-                    
-                    <!-- Horaires -->
-                    <div class="schedules-control">
-                        <div class="schedules-header">
-                            <h5>🕐 Horaires</h5>
-                            <button class="btn-add-schedule" 
-                                    onclick="planningApp.editRenderer.addScheduleSlot('${sanitizedDateStr}')">
-                                ➕ Ajouter créneau
-                            </button>
-                        </div>
-                        <div class="schedules-list" id="schedules-${sanitizedDateStr}">
-                            ${this.renderScheduleSlots(day.schedules || [], sanitizedDateStr)}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        container.innerHTML = editHTML;
-        
-        // Ajouter les événements
-        this.attachEditEvents(sanitizedDateStr, day);
-    }
-
-    /**
-     * Génère les créneaux horaires
-     * @param {Array} schedules - Liste des horaires
-     * @param {string} sanitizedDateStr - ID nettoyé de la date
-     * @returns {string} HTML des créneaux
-     */
-    renderScheduleSlots(schedules, sanitizedDateStr) {
-        if (!schedules || schedules.length === 0) {
-            return this.renderScheduleSlot('', '', 0, sanitizedDateStr);
+        let isRestDay = false;
+        if (hasWork) {
+            const timeInfo = TimeUtils.extractTimeInfo(dayData.entries[0]);
+            isRestDay = timeInfo.isRest;
         }
         
-        return schedules.map((schedule, index) => {
-            const parts = schedule.split('-');
-            const startTime = parts[0] || '';
-            const endTime = parts[1] || '';
-            return this.renderScheduleSlot(startTime, endTime, index, sanitizedDateStr);
-        }).join('');
-    }
-
-    /**
-     * Génère un créneau horaire individuel
-     * @param {string} startTime - Heure de début
-     * @param {string} endTime - Heure de fin
-     * @param {number} index - Index du créneau
-     * @param {string} sanitizedDateStr - ID nettoyé de la date
-     * @returns {string} HTML du créneau
-     */
-    renderScheduleSlot(startTime, endTime, index, sanitizedDateStr) {
-        return `
-            <div class="schedule-slot" data-index="${index}">
-                <div class="time-inputs">
-                    <input type="time" 
-                           class="start-time" 
-                           value="${startTime}" 
-                           id="start-${sanitizedDateStr}-${index}">
-                    <span class="time-separator">→</span>
-                    <input type="time" 
-                           class="end-time" 
-                           value="${endTime}"
-                           id="end-${sanitizedDateStr}-${index}">
-                </div>
-                <button class="btn-remove-schedule" 
-                        onclick="planningApp.editRenderer.removeScheduleSlot(this)"
-                        ${index === 0 ? 'style="visibility: hidden;"' : ''}>
-                    ➖
-                </button>
-            </div>
-        `;
-    }
-
-    /**
-     * Ajoute un nouveau créneau horaire
-     * @param {string} sanitizedDateStr - ID nettoyé de la date
-     */
-    addScheduleSlot(sanitizedDateStr) {
-        const schedulesList = document.getElementById(`schedules-${sanitizedDateStr}`);
-        if (!schedulesList) {
-            console.error('❌ Liste des horaires non trouvée:', sanitizedDateStr);
-            return;
-        }
-
-        const currentSlots = schedulesList.querySelectorAll('.schedule-slot');
-        const newIndex = currentSlots.length;
+        let html = `<div class="day-card ${isEditing ? 'editing' : ''}" id="${dayId}">`;
         
-        const newSlotHTML = this.renderScheduleSlot('', '', newIndex, sanitizedDateStr);
-        schedulesList.insertAdjacentHTML('beforeend', newSlotHTML);
+        // En-tête de la carte
+        html += this.renderDayHeader(dayName, dayNumber, isToday, isRestDay, hasWork, isEditing, dayData);
         
-        // Attacher les événements au nouveau créneau
-        const newSlot = schedulesList.lastElementChild;
-        const timeInputs = newSlot.querySelectorAll('input[type="time"]');
-        timeInputs.forEach(input => {
-            input.addEventListener('change', () => {
-                this.validateTimeInput(input);
-            });
-        });
+        // Contrôles d'édition
+        html += this.renderEditControlsSection(dayId);
         
-        console.log('➕ Nouveau créneau ajouté:', newIndex);
-    }
-
-    /**
-     * Supprime un créneau horaire
-     * @param {HTMLElement} button - Bouton de suppression cliqué
-     */
-    removeScheduleSlot(button) {
-        const slot = button.closest('.schedule-slot');
-        const schedulesList = slot.parentNode;
-        
-        // Ne pas supprimer s'il n'y a qu'un seul créneau
-        const remainingSlots = schedulesList.querySelectorAll('.schedule-slot');
-        if (remainingSlots.length <= 1) {
-            console.log('❌ Impossible de supprimer le dernier créneau');
-            return;
-        }
-        
-        slot.remove();
-        console.log('➖ Créneau supprimé');
-        
-        // Réindexer les créneaux restants
-        this.reindexScheduleSlots(schedulesList);
-    }
-
-    /**
-     * Réindexe les créneaux après suppression
-     * @param {HTMLElement} schedulesList - Conteneur des créneaux
-     */
-    reindexScheduleSlots(schedulesList) {
-        const slots = schedulesList.querySelectorAll('.schedule-slot');
-        slots.forEach((slot, index) => {
-            slot.dataset.index = index;
-            
-            // Mettre à jour les IDs des inputs
-            const startInput = slot.querySelector('.start-time');
-            const endInput = slot.querySelector('.end-time');
-            
-            if (startInput && endInput) {
-                const baseId = startInput.id.split('-').slice(0, -1).join('-');
-                startInput.id = `${baseId}-${index}`;
-                endInput.id = `${baseId.replace('start', 'end')}-${index}`;
-            }
-            
-            // Masquer/afficher le bouton de suppression
-            const removeBtn = slot.querySelector('.btn-remove-schedule');
-            if (removeBtn) {
-                removeBtn.style.visibility = index === 0 ? 'hidden' : 'visible';
-            }
-        });
-    }
-
-    /**
-     * Attache les événements aux éléments d'édition
-     * @param {string} sanitizedDateStr - ID nettoyé de la date
-     * @param {Object} day - Données du jour
-     */
-    attachEditEvents(sanitizedDateStr, day) {
-        // Événement pour le checkbox jour de repos
-        const restDayCheckbox = document.getElementById(`rest-day-${sanitizedDateStr}`);
-        if (restDayCheckbox) {
-            restDayCheckbox.addEventListener('change', (e) => {
-                const isRestDay = e.target.checked;
-                console.log('☑️ Jour de repos modifié:', isRestDay);
-                
-                // Masquer/afficher les horaires selon l'état
-                const schedulesControl = document.querySelector(`#edit-${sanitizedDateStr} .schedules-control`);
-                if (schedulesControl) {
-                    schedulesControl.style.display = isRestDay ? 'none' : 'block';
-                }
-            });
-        }
-
-        // Validation en temps réel des horaires
-        const timeInputs = document.querySelectorAll(`#edit-${sanitizedDateStr} input[type="time"]`);
-        timeInputs.forEach(input => {
-            input.addEventListener('change', () => {
-                this.validateTimeInput(input);
-            });
-        });
-
-        // Événements pour les champs texte
-        const locationInput = document.getElementById(`location-${sanitizedDateStr}`);
-        const tasksInput = document.getElementById(`tasks-${sanitizedDateStr}`);
-        
-        if (locationInput) {
-            locationInput.addEventListener('input', () => {
-                console.log('📍 Lieu modifié:', locationInput.value);
-            });
-        }
-        
-        if (tasksInput) {
-            tasksInput.addEventListener('input', () => {
-                console.log('📝 Tâches modifiées:', tasksInput.value.substring(0, 50) + '...');
-            });
-        }
-    }
-
-    /**
-     * Valide un champ d'heure
-     * @param {HTMLElement} input - Input de type time à valider
-     */
-    validateTimeInput(input) {
-        const value = input.value;
-        const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-        
-        if (value && !timeRegex.test(value)) {
-            input.style.borderColor = '#ff8a80';
-            input.style.backgroundColor = '#ffebee';
-            console.log('❌ Format d\'heure invalide:', value);
+        // Contenu principal
+        if (isEditing) {
+            html += this.editManager.renderEditForm(dayId, dayData);
         } else {
-            input.style.borderColor = '#81c784';
-            input.style.backgroundColor = '#f1f8e9';
-            console.log('✅ Heure valide:', value);
+            html += this.renderViewContent(dayData, hasWork, isRestDay);
         }
+        
+        html += `</div>`;
+        return html;
     }
 
     /**
-     * Collecte les données d'édition depuis l'interface
-     * @param {string} sanitizedDateStr - ID nettoyé de la date
-     * @returns {Object|null} Données collectées ou null en cas d'erreur
+     * Rendu de l'en-tête de la carte de jour
      */
-    collectEditData(sanitizedDateStr) {
-        const editInterface = document.getElementById(`edit-${sanitizedDateStr}`);
-        if (!editInterface) {
-            console.error('❌ Interface d\'édition non trouvée:', sanitizedDateStr);
-            return null;
+    renderDayHeader(dayName, dayNumber, isToday, isRestDay, hasWork, isEditing, dayData) {
+        let html = `<div class="day-header">`;
+        html += `<div><div class="day-name">${dayName}</div><div class="day-number">${dayNumber}</div></div>`;
+        html += `<div class="day-badges">`;
+        
+        if (isToday && !isEditing) {
+            html += `<div class="today-badge">Aujourd'hui</div>`;
+        } else if ((isRestDay || !hasWork) && !isEditing) {
+            html += `<div class="rest-badge">Repos</div>`;
+        } else if (hasWork && !isEditing) {
+            html += this.renderDayBadges(dayData);
         }
+        
+        html += `</div></div>`;
+        return html;
+    }
 
-        // Récupérer les données
-        const restDayCheckbox = document.getElementById(`rest-day-${sanitizedDateStr}`);
-        const locationInput = document.getElementById(`location-${sanitizedDateStr}`);
-        const tasksInput = document.getElementById(`tasks-${sanitizedDateStr}`);
+    /**
+     * Rendu des badges de jour
+     */
+    renderDayBadges(dayData) {
+        if (!dayData || !dayData.entries) return '';
         
-        const isRestDay = restDayCheckbox ? restDayCheckbox.checked : false;
-        const location = locationInput ? locationInput.value : '';
-        const tasks = tasksInput ? tasksInput.value : '';
+        const timeSlots = TimeUtils.organizeTimeSlots(dayData.entries);
+        let badges = '';
         
-        // Récupérer les horaires
-        const schedules = [];
-        if (!isRestDay) {
-            const scheduleSlots = editInterface.querySelectorAll('.schedule-slot');
-            scheduleSlots.forEach(slot => {
-                const startInput = slot.querySelector('.start-time');
-                const endInput = slot.querySelector('.end-time');
-                
-                if (startInput && endInput && startInput.value && endInput.value) {
-                    schedules.push(`${startInput.value}-${endInput.value}`);
+        if (timeSlots.length > 2) {
+            badges += `<div class="multiple-badge">Coupure</div>`;
+        } else if (timeSlots.some(slot => TimeUtils.isNightShift(slot.start, slot.end))) {
+            badges += `<div class="night-badge">Nuit</div>`;
+        } else if (timeSlots.length === 2) {
+            badges += `<div class="multiple-badge">Coupure</div>`;
+        }
+        
+        return badges;
+    }
+
+    /**
+     * Rendu de la section des contrôles d'édition
+     */
+    renderEditControlsSection(dayId) {
+        return `
+            <div class="edit-controls">
+                ${this.editManager.renderEditControls(dayId)}
+            </div>
+        `;
+    }
+
+    /**
+     * Rendu du contenu en mode visualisation
+     */
+    renderViewContent(dayData, hasWork, isRestDay) {
+        let html = '';
+        
+        if (hasWork && !isRestDay) {
+            html += this.renderScheduleSection(dayData);
+        }
+        
+        if (hasWork) {
+            html += this.renderDayInfo(dayData);
+        }
+        
+        return html;
+    }
+
+    /**
+     * Rendu de la section horaires (mode visualisation)
+     */
+    renderScheduleSection(dayData) {
+        let html = `<div class="schedule-section">`;
+        html += `<div class="schedule-title">`;
+        html += `<span class="info-icon">🕒</span>Horaires de la journée :`;
+        html += `</div>`;
+        
+        let totalHours = 0;
+        const timeSlots = TimeUtils.organizeTimeSlots(dayData.entries);
+        
+        timeSlots.forEach(slot => {
+            const isNightShift = TimeUtils.isNightShift(slot.start, slot.end);
+            const duration = TimeUtils.calculateSlotDuration(slot.start, slot.end);
+            totalHours += duration;
+            
+            html += `<div class="time-slot ${isNightShift ? 'night-slot' : ''}">`;
+            html += `<div class="time-dot ${isNightShift ? 'night-dot' : ''}"></div>`;
+            html += `<div class="time-text">${slot.start}-${slot.end}</div>`;
+            html += `<div class="duration-badge">${duration.toFixed(1)}h</div>`;
+            html += `</div>`;
+        });
+        
+        if (totalHours > 0) {
+            html += `<div class="total-hours">💚 Total: ${totalHours.toFixed(1)}h</div>`;
+        }
+        
+        html += `</div>`;
+        return html;
+    }
+
+    /**
+     * Rendu des informations du jour (mode visualisation)
+     */
+    renderDayInfo(dayData) {
+        let html = `<div class="info-section">`;
+        const uniqueInfo = new Set();
+        
+        dayData.entries.forEach(entry => {
+            if (entry.poste && entry.poste.toLowerCase() !== 'congé') {
+                const poste = entry.poste;
+                if (!uniqueInfo.has(`poste:${poste}`)) {
+                    html += `<div class="info-item">`;
+                    html += `<span class="info-icon">📍</span>${poste}`;
+                    html += `</div>`;
+                    uniqueInfo.add(`poste:${poste}`);
                 }
+            }
+            
+            if (entry.taches && entry.taches.toLowerCase() !== 'jour de repos') {
+                const taches = entry.taches;
+                if (!uniqueInfo.has(`taches:${taches}`)) {
+                    html += `<div class="info-item">`;
+                    html += `<span class="info-icon">✅</span>${taches}`;
+                    html += `</div>`;
+                    uniqueInfo.add(`taches:${taches}`);
+                }
+            }
+        });
+        
+        html += `</div>`;
+        return html;
+    }
+
+    /**
+     * Rendu d'un indicateur de statut d'édition
+     */
+    renderEditStatus(dayId) {
+        const isEditing = this.editManager.isEditing(dayId);
+        const hasUnsaved = this.editManager.originalData.has(dayId);
+        
+        if (!isEditing && !hasUnsaved) return '';
+        
+        let html = `<div class="edit-status">`;
+        
+        if (isEditing) {
+            html += `<span class="edit-indicator editing">✏️ En cours d'édition</span>`;
+        } else if (hasUnsaved) {
+            html += `<span class="edit-indicator unsaved">⚠️ Modifications non sauvegardées</span>`;
+        }
+        
+        html += `</div>`;
+        return html;
+    }
+
+    /**
+     * Rendu d'un aperçu des modifications
+     */
+    renderEditPreview(dayId, editData) {
+        if (!editData) return '';
+        
+        let html = `<div class="edit-preview">`;
+        html += `<div class="preview-title">📋 Aperçu des modifications :</div>`;
+        
+        if (editData.isRest) {
+            html += `<div class="preview-item">🛌 Jour de repos</div>`;
+        } else {
+            html += `<div class="preview-item">🕒 ${editData.schedules.length} créneau(x)</div>`;
+            editData.schedules.forEach((schedule, index) => {
+                html += `<div class="preview-schedule">${schedule.start} - ${schedule.end}</div>`;
             });
         }
-
-        const editData = {
-            isRestDay,
-            location: location.trim(),
-            tasks: tasks.trim(),
-            schedules: schedules.length > 0 ? schedules : (isRestDay ? [] : [''])
-        };
-
-        console.log('📝 Données collectées:', editData);
-        return editData;
+        
+        html += `<div class="preview-item">📍 ${editData.location}</div>`;
+        html += `<div class="preview-item">✅ ${editData.tasks}</div>`;
+        html += `</div>`;
+        
+        return html;
     }
 
     /**
-     * Supprime l'interface d'édition
-     * @param {string} sanitizedDateStr - ID nettoyé de la date
+     * Rendu de conseils d'édition
      */
-    removeEditInterface(sanitizedDateStr) {
-        const editInterface = document.getElementById(`edit-${sanitizedDateStr}`);
-        if (editInterface) {
-            editInterface.remove();
-            console.log('🗑️ Interface d\'édition supprimée:', sanitizedDateStr);
-        }
+    renderEditTips() {
+        return `
+            <div class="edit-tips">
+                <div class="tips-title">💡 Conseils d'édition :</div>
+                <div class="tip-item">• Utilisez les boutons + et - pour gérer les créneaux</div>
+                <div class="tip-item">• Cochez "Jour de repos" pour les congés</div>
+                <div class="tip-item">• Les horaires de nuit sont détectés automatiquement</div>
+                <div class="tip-item">• Appuyez sur Échap pour annuler</div>
+            </div>
+        `;
     }
 
     /**
-     * Affiche un message d'erreur dans l'interface
-     * @param {string} sanitizedDateStr - ID nettoyé de la date
-     * @param {string} message - Message d'erreur à afficher
+     * Rendu des raccourcis clavier
      */
-    showEditError(sanitizedDateStr, message) {
-        const editInterface = document.getElementById(`edit-${sanitizedDateStr}`);
-        if (editInterface) {
-            const errorHTML = `
-                <div class="edit-error" style="
-                    background: #ffebee; 
-                    border: 1px solid #ff8a80; 
-                    border-radius: 8px; 
-                    padding: 10px; 
-                    margin: 10px 0; 
-                    color: #d32f2f;
-                    animation: slideDown 0.3s ease;
-                ">
-                    ❌ ${message}
+    renderKeyboardShortcuts(dayId) {
+        return `
+            <div class="keyboard-shortcuts" id="shortcuts-${dayId}">
+                <div class="shortcuts-title">⌨️ Raccourcis :</div>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">Ctrl + S</span>
+                    <span class="shortcut-desc">Sauvegarder</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">Échap</span>
+                    <span class="shortcut-desc">Annuler</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">Ctrl + +</span>
+                    <span class="shortcut-desc">Ajouter créneau</span>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Rendu d'un tooltip d'aide
+     */
+    renderHelpTooltip(content, position = 'top') {
+        return `
+            <div class="help-tooltip ${position}">
+                <span class="tooltip-trigger">❓</span>
+                <div class="tooltip-content">${content}</div>
+            </div>
+        `;
+    }
+
+    /**
+     * Rendu d'un indicateur de validation
+     */
+    renderValidationIndicator(isValid, message = '') {
+        const icon = isValid ? '✅' : '❌';
+        const className = isValid ? 'valid' : 'invalid';
+        
+        return `
+            <div class="validation-indicator ${className}">
+                <span class="validation-icon">${icon}</span>
+                ${message ? `<span class="validation-message">${message}</span>` : ''}
+            </div>
+        `;
+    }
+
+    /**
+     * Rendu d'un compteur de caractères
+     */
+    renderCharacterCounter(currentLength, maxLength, fieldName) {
+        const remaining = maxLength - currentLength;
+        const className = remaining < 10 ? 'warning' : remaining < 0 ? 'error' : 'normal';
+        
+        return `
+            <div class="character-counter ${className}">
+                <span class="counter-text">${currentLength}/${maxLength}</span>
+                <span class="counter-field">${fieldName}</span>
+            </div>
+        `;
+    }
+
+    /**
+     * Rendu d'une barre de progression pour l'édition
+     */
+    renderEditProgress(currentStep, totalSteps) {
+        const percentage = (currentStep / totalSteps) * 100;
+        
+        return `
+            <div class="edit-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${percentage}%"></div>
+                </div>
+                <div class="progress-text">Étape ${currentStep} sur ${totalSteps}</div>
+            </div>
+        `;
+    }
+
+    /**
+     * Rendu d'un sélecteur de template d'horaires
+     */
+    renderScheduleTemplates(dayId) {
+        const templates = [
+            { name: 'Journée continue', schedules: [{ start: '08:00', end: '17:00' }] },
+            { name: 'Matin + Après-midi', schedules: [{ start: '08:00', end: '12:00' }, { start: '13:00', end: '17:00' }] },
+            { name: 'Horaires de nuit', schedules: [{ start: '22:00', end: '06:00' }] },
+            { name: 'Équipe matin', schedules: [{ start: '06:00', end: '14:00' }] },
+            { name: 'Équipe après-midi', schedules: [{ start: '14:00', end: '22:00' }] }
+        ];
+        
+        let html = `<div class="schedule-templates">`;
+        html += `<div class="templates-title">🕒 Templates d'horaires :</div>`;
+        html += `<div class="templates-list">`;
+        
+        templates.forEach((template, index) => {
+            html += `
+                <button class="template-btn" onclick="window.planningApp.editManager.applyTemplate('${dayId}', ${index})">
+                    ${template.name}
+                </button>
+            `;
+        });
+        
+        html += `</div></div>`;
+        return html;
+    }
+
+    /**
+     * Rendu d'un historique des modifications
+     */
+    renderEditHistory(dayId) {
+        // Cette fonctionnalité peut être implémentée plus tard
+        return `
+            <div class="edit-history">
+                <div class="history-title">📜 Historique :</div>
+                <div class="history-item">🕒 Dernière modification : Il y a 2 minutes</div>
+                <div class="history-item">💾 Dernière sauvegarde : Il y a 5 minutes</div>
+            </div>
+        `;
+    }
+
+    /**
+     * Rendu d'un bouton de duplication de jour
+     */
+    renderDuplicateButton(dayId) {
+        return `
+            <button class="edit-btn duplicate" onclick="window.planningApp.editManager.duplicateDay('${dayId}')">
+                📋 Dupliquer
+            </button>
+        `;
+    }
+
+    /**
+     * Rendu d'un aperçu des statistiques pendant l'édition
+     */
+    renderEditStats(editData) {
+        if (!editData || editData.isRest) {
+            return `
+                <div class="edit-stats">
+                    <div class="stat-item">
+                        <span class="stat-icon">🛌</span>
+                        <span class="stat-value">Repos</span>
+                    </div>
                 </div>
             `;
-            
-            // Supprimer les anciennes erreurs
-            const existingError = editInterface.querySelector('.edit-error');
-            if (existingError) {
-                existingError.remove();
-            }
-            
-            // Ajouter la nouvelle erreur en haut
-            editInterface.insertAdjacentHTML('afterbegin', errorHTML);
-            
-            // Supprimer l'erreur après 5 secondes
-            setTimeout(() => {
-                const errorElement = editInterface.querySelector('.edit-error');
-                if (errorElement) {
-                    errorElement.style.opacity = '0';
-                    setTimeout(() => {
-                        if (errorElement && errorElement.parentNode) {
-                            errorElement.remove();
-                        }
-                    }, 300);
-                }
-            }, 5000);
         }
+        
+        const totalHours = editData.schedules.reduce((total, schedule) => {
+            return total + this.calculateScheduleDuration(schedule);
+        }, 0);
+        
+        return `
+            <div class="edit-stats">
+                <div class="stat-item">
+                    <span class="stat-icon">🕒</span>
+                    <span class="stat-value">${editData.schedules.length} créneau(x)</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">⏱️</span>
+                    <span class="stat-value">${totalHours.toFixed(1)}h</span>
+                </div>
+            </div>
+        `;
     }
 
     /**
-     * Affiche un message de succès dans l'interface
-     * @param {string} sanitizedDateStr - ID nettoyé de la date
-     * @param {string} message - Message de succès à afficher
+     * Calcule la durée d'un créneau
      */
-    showEditSuccess(sanitizedDateStr, message) {
-        const editInterface = document.getElementById(`edit-${sanitizedDateStr}`);
-        if (editInterface) {
-            const successHTML = `
-                <div class="edit-success" style="
-                    background: #e8f5e8; 
-                    border: 1px solid #81c784; 
-                    border-radius: 8px; 
-                    padding: 10px; 
-                    margin: 10px 0; 
-                    color: #2e7d32;
-                    animation: slideDown 0.3s ease;
-                ">
-                    ✅ ${message}
+    calculateScheduleDuration(schedule) {
+        const startMinutes = this.timeToMinutes(schedule.start);
+        let endMinutes = this.timeToMinutes(schedule.end);
+        
+        // Gestion des horaires de nuit
+        if (startMinutes > endMinutes) {
+            endMinutes += 24 * 60;
+        }
+        
+        return (endMinutes - startMinutes) / 60;
+    }
+
+    /**
+     * Convertit une heure en minutes
+     */
+    timeToMinutes(timeStr) {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
+    }
+
+    /**
+     * Rendu d'un sélecteur de couleur pour les badges
+     */
+    renderColorPicker(dayId) {
+        const colors = [
+            { name: 'Bleu', value: '#64b5f6', class: 'blue' },
+            { name: 'Vert', value: '#81c784', class: 'green' },
+            { name: 'Orange', value: '#ffb74d', class: 'orange' },
+            { name: 'Rouge', value: '#ff8a80', class: 'red' },
+            { name: 'Violet', value: '#ba68c8', class: 'purple' }
+        ];
+        
+        let html = `<div class="color-picker">`;
+        html += `<div class="picker-title">🎨 Couleur du jour :</div>`;
+        html += `<div class="color-options">`;
+        
+        colors.forEach(color => {
+            html += `
+                <button class="color-option ${color.class}" 
+                        style="background-color: ${color.value}"
+                        onclick="window.planningApp.editManager.setDayColor('${dayId}', '${color.value}')"
+                        title="${color.name}">
+                </button>
+            `;
+        });
+        
+        html += `</div></div>`;
+        return html;
+    }
+
+    /**
+     * Rendu d'un widget météo (exemple d'extension)
+     */
+    renderWeatherWidget(date) {
+        // Exemple de widget additionnel
+        return `
+            <div class="weather-widget">
+                <div class="widget-title">🌤️ Météo prévue :</div>
+                <div class="weather-info">
+                    <span class="weather-icon">☂️</span>
+                    <span class="weather-temp">18°C</span>
+                    <span class="weather-desc">Pluie légère</span>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Rendu d'alertes et notifications
+     */
+    renderEditAlerts(dayId, alerts = []) {
+        if (alerts.length === 0) return '';
+        
+        let html = `<div class="edit-alerts">`;
+        
+        alerts.forEach(alert => {
+            const iconMap = {
+                'warning': '⚠️',
+                'error': '❌',
+                'info': 'ℹ️',
+                'success': '✅'
+            };
+            
+            html += `
+                <div class="alert-item ${alert.type}">
+                    <span class="alert-icon">${iconMap[alert.type] || 'ℹ️'}</span>
+                    <span class="alert-message">${alert.message}</span>
+                    ${alert.action ? `<button class="alert-action" onclick="${alert.action}">${alert.actionText}</button>` : ''}
                 </div>
             `;
-            
-            // Supprimer les anciens messages
-            const existingMessage = editInterface.querySelector('.edit-success');
-            if (existingMessage) {
-                existingMessage.remove();
-            }
-            
-            // Ajouter le nouveau message en haut
-            editInterface.insertAdjacentHTML('afterbegin', successHTML);
-            
-            // Supprimer le message après 3 secondes
-            setTimeout(() => {
-                const successElement = editInterface.querySelector('.edit-success');
-                if (successElement) {
-                    successElement.style.opacity = '0';
-                    setTimeout(() => {
-                        if (successElement && successElement.parentNode) {
-                            successElement.remove();
-                        }
-                    }, 300);
-                }
-            }, 3000);
-        }
+        });
+        
+        html += `</div>`;
+        return html;
     }
 
     /**
-     * Vérifie si une interface d'édition existe
-     * @param {string} sanitizedDateStr - ID nettoyé de la date
-     * @returns {boolean} True si l'interface existe
+     * Rendu d'un mode de saisie rapide
      */
-    hasEditInterface(sanitizedDateStr) {
-        return !!document.getElementById(`edit-${sanitizedDateStr}`);
+    renderQuickEntry(dayId) {
+        return `
+            <div class="quick-entry">
+                <div class="quick-title">⚡ Saisie rapide :</div>
+                <div class="quick-options">
+                    <button class="quick-btn" onclick="window.planningApp.editManager.quickSet('${dayId}', '8h-17h')">
+                        8h-17h
+                    </button>
+                    <button class="quick-btn" onclick="window.planningApp.editManager.quickSet('${dayId}', '9h-18h')">
+                        9h-18h
+                    </button>
+                    <button class="quick-btn" onclick="window.planningApp.editManager.quickSet('${dayId}', 'repos')">
+                        Repos
+                    </button>
+                    <button class="quick-btn" onclick="window.planningApp.editManager.quickSet('${dayId}', 'teletravail')">
+                        Télétravail
+                    </button>
+                </div>
+            </div>
+        `;
     }
 
     /**
-     * Focus sur le premier champ de l'interface d'édition
-     * @param {string} sanitizedDateStr - ID nettoyé de la date
+     * Rendu d'un panneau de debug (développement)
      */
-    focusFirstField(sanitizedDateStr) {
-        const editInterface = document.getElementById(`edit-${sanitizedDateStr}`);
-        if (editInterface) {
-            const firstInput = editInterface.querySelector('input:not([type="checkbox"]), textarea');
-            if (firstInput) {
-                firstInput.focus();
-            }
-        }
+    renderDebugPanel(dayId, debugData) {
+        if (process?.env?.NODE_ENV !== 'development') return '';
+        
+        return `
+            <div class="debug-panel">
+                <div class="debug-title">🐛 Debug Info :</div>
+                <div class="debug-content">
+                    <pre>${JSON.stringify(debugData, null, 2)}</pre>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Rendu d'un footer d'édition avec actions supplémentaires
+     */
+    renderEditFooter(dayId) {
+        return `
+            <div class="edit-footer">
+                <div class="footer-actions">
+                    <button class="footer-btn" onclick="window.planningApp.editManager.resetDay('${dayId}')" title="Remettre à zéro">
+                        🔄 Reset
+                    </button>
+                    <button class="footer-btn" onclick="window.planningApp.editManager.copyFromYesterday('${dayId}')" title="Copier d'hier">
+                        📋 Copier d'hier
+                    </button>
+                    <button class="footer-btn" onclick="window.planningApp.editManager.showPreview('${dayId}')" title="Aperçu">
+                        👁️ Aperçu
+                    </button>
+                </div>
+                <div class="footer-info">
+                    <span class="edit-time">Édition commencée à ${new Date().toLocaleTimeString()}</span>
+                </div>
+            </div>
+        `;
     }
 }
-
-// Export pour usage global
-window.EditRenderer = EditRenderer;
