@@ -1,7 +1,6 @@
 /**
  * Application principale de Planning de Travail - PWA
- * Version refactorisée et modulaire avec EditManager
- * CORRECTION: refreshCurrentWeekDisplay pour éviter la disparition des jours
+ * Version refactorisée et modulaire avec EditManager et bouton Options
  */
 class PlanningApp {
     constructor() {
@@ -143,8 +142,14 @@ class PlanningApp {
         this.csvFileInput = document.getElementById('csvFile');
         this.importBtn = document.getElementById('importBtn');
         this.todayBtn = document.getElementById('todayBtn');
-        this.resetBtn = document.getElementById('resetBtn');
-        this.themeToggle = document.getElementById('themeToggle');
+        
+        // Nouveaux éléments pour le menu options
+        this.optionsBtn = document.getElementById('optionsBtn');
+        this.optionsMenu = document.getElementById('optionsMenu');
+        this.optionsOverlay = document.getElementById('optionsOverlay');
+        this.themeToggleMenu = document.getElementById('themeToggleMenu');
+        this.resetBtnMenu = document.getElementById('resetBtnMenu');
+        
         this.weekNavigation = document.getElementById('weekNavigation');
         this.weekDates = document.getElementById('weekDates');
         this.currentBadge = document.getElementById('currentBadge');
@@ -170,10 +175,11 @@ class PlanningApp {
     bindEvents() {
         this.csvFileInput.addEventListener('change', (e) => this.fileManager.handleFileLoad(e));
         this.todayBtn.addEventListener('click', () => this.goToCurrentWeek());
-        this.resetBtn.addEventListener('click', () => this.resetPlanningWithConfirm());
-        this.themeToggle.addEventListener('click', () => this.themeManager.toggleTheme());
         this.prevWeekBtn.addEventListener('click', () => this.navigateWeek(-1));
         this.nextWeekBtn.addEventListener('click', () => this.navigateWeek(1));
+
+        // Événements du menu options
+        this.bindOptionsMenuEvents();
 
         // Déléguer la gestion des thèmes au ThemeManager
         this.themeManager.bindAutoThemeDetection();
@@ -184,6 +190,84 @@ class PlanningApp {
                 this.handlePageVisible();
             }
         });
+    }
+
+    /**
+     * Lie les événements du menu options
+     */
+    bindOptionsMenuEvents() {
+        // État du menu
+        this.isMenuOpen = false;
+
+        // Toggle du menu principal
+        this.optionsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleOptionsMenu();
+        });
+
+        // Fermer avec overlay
+        this.optionsOverlay.addEventListener('click', () => this.closeOptionsMenu());
+
+        // Toggle thème depuis le menu
+        this.themeToggleMenu.addEventListener('click', () => {
+            this.themeManager.toggleTheme();
+            this.updateThemeMenuDisplay();
+            this.closeOptionsMenu();
+        });
+
+        // Reset depuis le menu
+        this.resetBtnMenu.addEventListener('click', () => {
+            this.closeOptionsMenu();
+            this.resetPlanningWithConfirm();
+        });
+
+        // Fermer le menu avec Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.closeOptionsMenu();
+            }
+        });
+    }
+
+    /**
+     * Toggle du menu options
+     */
+    toggleOptionsMenu() {
+        this.isMenuOpen = !this.isMenuOpen;
+        
+        if (this.isMenuOpen) {
+            this.optionsBtn.classList.add('active');
+            this.optionsMenu.classList.add('show');
+            this.optionsOverlay.classList.add('show');
+        } else {
+            this.optionsBtn.classList.remove('active');
+            this.optionsMenu.classList.remove('show');
+            this.optionsOverlay.classList.remove('show');
+        }
+    }
+
+    /**
+     * Ferme le menu options
+     */
+    closeOptionsMenu() {
+        if (this.isMenuOpen) {
+            this.isMenuOpen = false;
+            this.optionsBtn.classList.remove('active');
+            this.optionsMenu.classList.remove('show');
+            this.optionsOverlay.classList.remove('show');
+        }
+    }
+
+    /**
+     * Met à jour l'affichage du thème dans le menu
+     */
+    updateThemeMenuDisplay() {
+        const isDark = this.themeManager.isDarkTheme;
+        const icon = this.themeToggleMenu.querySelector('.menu-icon');
+        const text = this.themeToggleMenu.querySelector('.menu-text');
+        
+        icon.textContent = isDark ? '☀️' : '🌙';
+        text.textContent = isDark ? 'Mode clair' : 'Mode sombre';
     }
 
     /**
@@ -284,8 +368,7 @@ class PlanningApp {
     }
 
     /**
-     * CORRECTION: Rafraîchit l'affichage de la semaine courante (pour EditManager)
-     * Version corrigée pour éviter la disparition des jours
+     * Rafraîchit l'affichage de la semaine courante (pour EditManager)
      */
     refreshCurrentWeekDisplay() {
         console.log('🔄 Rafraîchissement de l\'affichage...');

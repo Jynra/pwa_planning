@@ -120,36 +120,6 @@ window.addEventListener('offline', () => {
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden && window.planningApp) {
         // La page redevient visible, on peut mettre à jour les données si nécessaire
-        window.planningApp.updateCurrentMonth();
-    }
-});
-
-/**
- * Raccourcis clavier
- */
-document.addEventListener('keydown', (event) => {
-    if (!window.planningApp) return;
-    
-    // Échapper pour fermer les modales/états actifs
-    if (event.key === 'Escape') {
-        // Logique pour fermer des éléments si nécessaire
-    }
-    
-    // Navigation avec les flèches (si Ctrl est pressé)
-    if (event.ctrlKey) {
-        switch (event.key) {
-            case 'ArrowLeft':
-                event.preventDefault();
-                window.planningApp.navigateWeek(-1);
-                break;
-            case 'ArrowRight':
-                event.preventDefault();
-                window.planningApp.navigateWeek(1);
-                break;
-            case 'Home':
-                event.preventDefault();
-                window.planningApp.goToCurrentWeek();
-                break;
-        }
+        window.planningApp.displayManager.updateCurrentMonth();
     }
 });
