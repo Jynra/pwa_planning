@@ -32,6 +32,8 @@
     <link rel="stylesheet" href="assets/css/layout.css">
     <link rel="stylesheet" href="assets/css/components.css">
     <link rel="stylesheet" href="assets/css/responsive.css">
+    <!-- NOUVEAUX : CSS pour l'édition -->
+    <link rel="stylesheet" href="assets/css/edit.css">
 </head>
 <body>
     <div class="container">
@@ -106,10 +108,18 @@
         </div>
     </div>
 
-    <!-- JavaScript factorisé -->
+    <!-- JavaScript modulaire -->
     <script src="assets/js/TimeUtils.js"></script>
     <script src="assets/js/DataManager.js"></script>
     <script src="assets/js/WeekManager.js"></script>
+    <!-- NOUVEAUX : Gestionnaires modulaires -->
+    <script src="assets/js/ThemeManager.js"></script>
+    <script src="assets/js/DisplayManager.js"></script>
+    <script src="assets/js/FileManager.js"></script>
+    <!-- NOUVEAUX : Édition -->
+    <script src="assets/js/EditManager.js"></script>
+    <script src="assets/js/EditRenderer.js"></script>
+    <!-- Application principale refactorisée -->
     <script src="assets/js/PlanningApp.js"></script>
     <script src="assets/js/main.js"></script>
 </body>

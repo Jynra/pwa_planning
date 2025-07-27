@@ -1,20 +1,22 @@
 # 📅 Planning de Travail - PWA
 
-Une application web progressive (PWA) moderne et intuitive pour visualiser et gérer vos plannings de travail semaine par semaine. Interface mobile-first avec support complet des horaires multiples, horaires de nuit, et mode standalone.
+Une application web progressive (PWA) moderne et intuitive pour visualiser et gérer vos plannings de travail semaine par semaine. Interface mobile-first avec support complet des horaires multiples, horaires de nuit, **édition en ligne**, et mode standalone.
 
-![Planning de Travail](https://img.shields.io/badge/PWA-Ready-brightgreen) ![Version](https://img.shields.io/badge/version-1.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Docker](https://img.shields.io/badge/Docker-Supported-blue)
+![Planning de Travail](https://img.shields.io/badge/PWA-Ready-brightgreen) ![Version](https://img.shields.io/badge/version-2.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Docker](https://img.shields.io/badge/Docker-Supported-blue) ![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow) ![Architecture](https://img.shields.io/badge/Architecture-Modulaire-purple)
 
 ## 🎯 Présentation
 
-Planning de Travail est une PWA complète conçue pour les professionnels ayant des horaires variables. Elle permet d'importer facilement des plannings au format CSV et de les visualiser de manière claire et organisée, semaine par semaine.
+Planning de Travail est une PWA complète et modulaire conçue pour les professionnels ayant des horaires variables. Elle permet d'importer facilement des plannings au format CSV, de les visualiser de manière claire et organisée semaine par semaine, et **de les modifier directement dans l'interface**.
 
 ### ✨ Points forts
 - **🚀 Installation native** sur smartphone (Android/iOS)
 - **📊 Import CSV intelligent** avec détection automatique des formats
+- **✏️ Édition en ligne** des horaires jour par jour
 - **⏰ Gestion avancée** des horaires multiples et de nuit
 - **🌙 Mode sombre** adaptatif
 - **💾 Fonctionnement hors ligne** avec sauvegarde locale
 - **🐳 Déploiement Docker** simplifié
+- **🧩 Architecture modulaire** et extensible
 
 ## 📱 Fonctionnalités
 
@@ -31,6 +33,18 @@ Planning de Travail est une PWA complète conçue pour les professionnels ayant 
 - **Détection automatique des colonnes** avec aliases supportés
 - **Validation et normalisation** des données importées
 - **Sauvegarde automatique** en local avec récupération au démarrage
+- **Export CSV** avec nom de fichier horodaté
+- **Import/Export presse-papiers** pour partage rapide
+
+### 🆕 Édition des Horaires
+- **✏️ Bouton "Modifier"** sur chaque jour pour édition en place
+- **🕐 Sélecteurs d'heure** HTML5 natifs pour facilité d'usage
+- **➕ Ajout/suppression** de créneaux multiples par jour
+- **☑️ Toggle "Jour de repos"** avec mise à jour automatique
+- **📍 Modification du lieu** et des tâches
+- **✅ Validation en temps réel** des horaires saisis
+- **💾 Sauvegarde automatique** des modifications
+- **❌ Annulation** avec restauration de l'état original
 
 ### Horaires et Planification
 - **Support des horaires multiples** par jour avec séparateurs variés
@@ -45,6 +59,7 @@ Planning de Travail est une PWA complète conçue pour les professionnels ayant 
 - **Navigation au clavier** avec raccourcis
 - **Gestion des erreurs** robuste avec messages informatifs
 - **Performance optimisée** avec animations fluides
+- **Architecture modulaire** pour maintenance facilitée
 
 ## 🚀 Installation et Déploiement
 
@@ -57,7 +72,8 @@ pwa_planning/
 │   │   ├── variables.css       # Variables et thèmes
 │   │   ├── layout.css          # Structure et layout
 │   │   ├── components.css      # Composants UI
-│   │   └── responsive.css      # Responsive design
+│   │   ├── responsive.css      # Responsive design
+│   │   └── edit.css           # 🆕 Styles d'édition
 │   ├── icons/                  # Icônes PWA (72px à 512px)
 │   │   ├── icon-72.png
 │   │   ├── icon-96.png
@@ -68,9 +84,14 @@ pwa_planning/
 │   │   ├── icon-384.png
 │   │   └── icon-512.png        ← CRITIQUE PWA
 │   └── js/                     # JavaScript modulaire
-│       ├── DataManager.js      # Gestion données et CSV
 │       ├── TimeUtils.js        # Calculs temporels
+│       ├── DataManager.js      # Gestion données et CSV
 │       ├── WeekManager.js      # Navigation semaines
+│       ├── ThemeManager.js     # 🆕 Gestion thèmes
+│       ├── DisplayManager.js   # 🆕 Gestion affichage
+│       ├── FileManager.js      # 🆕 Gestion fichiers
+│       ├── EditManager.js      # 🆕 Gestion édition
+│       ├── EditRenderer.js     # 🆕 Rendu édition
 │       ├── PlanningApp.js      # Application principale
 │       └── main.js             # Point d'entrée
 ├── docker/                     # Configuration Docker
@@ -195,6 +216,16 @@ date,horaire,poste,taches
 | **Coupure** | 🔴 Rouge | Horaires multiples |
 | **Nuit** | 🟣 Violet | Horaires nocturnes |
 
+### 🆕 Contrôles d'Édition
+
+| Bouton | Action | Description |
+|--------|--------|-------------|
+| **✏️ Modifier** | Démarre l'édition | Passe en mode édition pour ce jour |
+| **💾 Enregistrer** | Sauvegarde | Enregistre les modifications |
+| **❌ Annuler** | Annule | Restaure l'état original |
+| **➕** | Ajouter créneau | Ajoute un nouveau créneau horaire |
+| **➖** | Supprimer créneau | Supprime le créneau sélectionné |
+
 ### Statistiques Automatiques
 
 - **Total semaine** : Heures travaillées cumulées
@@ -207,6 +238,42 @@ date,horaire,poste,taches
 - **📅 Aujourd'hui** : Retour à la semaine courante  
 - **🔄 Reset** : Effacer et revenir aux données d'exemple
 - **🌙/☀️** : Basculer mode sombre/clair
+
+## 🏗️ Architecture Technique
+
+### Architecture Modulaire
+
+L'application suit une architecture modulaire pour une maintenance facilitée :
+
+```javascript
+PlanningApp (Core)
+├── DataManager      # Gestion des données et CSV
+├── WeekManager      # Navigation par semaines
+├── ThemeManager     # Gestion des thèmes
+├── DisplayManager   # Gestion de l'affichage
+├── FileManager      # Import/Export de fichiers
+├── EditManager      # Logique d'édition
+└── EditRenderer     # Rendu des éléments d'édition
+```
+
+### Responsabilités des Modules
+
+- **PlanningApp** : Orchestration générale et initialisation
+- **DataManager** : Parsing CSV, validation, sauvegarde locale
+- **WeekManager** : Organisation des données par semaines
+- **ThemeManager** : Thèmes clair/sombre, détection système
+- **DisplayManager** : États d'affichage, messages, statistiques
+- **FileManager** : Import/export, validation fichiers
+- **EditManager** : Logique métier de l'édition des horaires
+- **EditRenderer** : Génération HTML pour l'édition
+
+### Avantages de cette Architecture
+
+✅ **Maintenabilité** : Code organisé en modules spécialisés
+✅ **Testabilité** : Chaque module peut être testé isolément  
+✅ **Extensibilité** : Nouvelles fonctionnalités faciles à ajouter
+✅ **Performance** : Chargement et cache optimisés
+✅ **Debugging** : Isolation des problèmes facilitée
 
 ## 🔧 Configuration et Personnalisation
 
@@ -238,7 +305,18 @@ PORT=VOTRE_PORT  # Modifier cette ligne
 
 Configuration du cache dans `sw.js` :
 ```javascript
-const CACHE_NAME = 'planning-travail-v1.0.0';  # Version à incrémenter
+const CACHE_NAME = 'planning-travail-v2.0.0';  # Version à incrémenter
+```
+
+### Édition des Horaires
+
+Personnalisation des règles de validation dans `EditManager.js` :
+```javascript
+this.validationRules = {
+    timeFormat: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+    maxHoursPerDay: 24,
+    minBreakBetweenSlots: 30 // minutes
+};
 ```
 
 ## 🚨 Résolution de Problèmes
@@ -267,6 +345,22 @@ curl http://localhost:4047/sw.js
 - ❌ HTTP au lieu de HTTPS (en production)
 - ❌ Cache navigateur obsolète
 
+### L'édition ne fonctionne pas
+
+**Vérifications :**
+- ✅ Tous les fichiers JS sont chargés (F12 → Network)
+- ✅ Pas d'erreurs JavaScript (F12 → Console)
+- ✅ EditManager et EditRenderer sont initialisés
+- ✅ Les événements onclick sont bien attachés
+
+**Solutions :**
+```bash
+# Vérifier le chargement des modules
+# Dans la console navigateur :
+console.log(window.planningApp.editManager);
+console.log(window.planningApp.editRenderer);
+```
+
 ### Import CSV échoue
 
 **Solutions :**
@@ -274,6 +368,7 @@ curl http://localhost:4047/sw.js
 - ✅ Format de date : **YYYY-MM-DD** préféré
 - ✅ Guillemets pour horaires complexes : `"08:00-12:00 | 14:00-18:00"`
 - ✅ En-têtes requis : au minimum `date` et `horaire`
+- ✅ Taille fichier < 5MB
 
 ### Performance et Cache
 
@@ -290,22 +385,35 @@ docker system prune -f
 
 ## 🔮 Évolutions Futures
 
-### Fonctionnalités Envisagées
-- **Export PDF** du planning hebdomadaire
-- **Synchronisation cloud** (Google Drive, Dropbox)
-- **Notifications push** pour rappels de planning
-- **Mode équipe** avec plannings partagés
-- **Intégration calendrier** (Google Calendar, Outlook)
-- **Thèmes personnalisés** et couleurs d'entreprise
-- **Support multi-langues** (EN, ES, DE)
-- **Analytics** d'utilisation et statistiques avancées
+### Fonctionnalités Planifiées
+
+#### Version 2.1
+- **📋 Templates d'horaires** prédéfinis (journée continue, 2x8, 3x8)
+- **📅 Copier d'un jour à l'autre** pour horaires similaires
+- **🔔 Validation avancée** (heures max/jour, repos obligatoires)
+- **↩️ Historique des modifications** avec undo/redo
+
+#### Version 2.2
+- **📊 Statistiques avancées** (heures mensuelles, comparaisons)
+- **🎨 Thèmes personnalisés** et couleurs d'entreprise
+- **📱 Raccourcis PWA** pour actions rapides
+- **🌐 Export PDF** du planning hebdomadaire
+
+#### Version 3.0
+- **☁️ Synchronisation cloud** (Google Drive, Dropbox)
+- **🔔 Notifications push** pour rappels de planning
+- **👥 Mode équipe** avec plannings partagés
+- **📊 Intégration calendrier** (Google Calendar, Outlook)
+- **🌍 Support multi-langues** (EN, ES, DE)
 
 ### Améliorations Techniques
-- **Progressive Web Share** pour partager des plannings
-- **Web Locks API** pour gestion concurrentielle
-- **Background Sync** pour synchronisation automatique
-- **Web Push** pour notifications système
-- **File System Access** pour sauvegarde locale avancée
+
+- **🔧 Web Components** pour composants réutilisables
+- **📱 Progressive Web Share** pour partager des plannings
+- **🔒 Web Locks API** pour gestion concurrentielle
+- **🔄 Background Sync** pour synchronisation automatique
+- **📡 Web Push** pour notifications système
+- **💾 File System Access** pour sauvegarde locale avancée
 
 ## 🤝 Contribution
 
@@ -318,11 +426,33 @@ docker system prune -f
 6. **Pull Request** avec description détaillée
 
 ### Guidelines de Code
-- **JavaScript** : ES6+ avec classes modulaires
-- **CSS** : Variables CSS et méthodologie BEM
-- **Responsive** : Mobile-first approach
-- **PWA** : Service Worker et manifest conformes
-- **Docker** : Configuration reproductible
+
+#### JavaScript
+- **ES6+** avec classes modulaires
+- **JSDoc** pour documentation des fonctions
+- **Console.log** structurés avec emojis
+- **Gestion d'erreurs** robuste avec try/catch
+
+#### CSS
+- **Variables CSS** pour cohérence des couleurs
+- **Méthodologie BEM** pour noms de classes
+- **Mobile-first** approach systématique
+- **Accessibilité** avec focus-visible et contraste
+
+#### Architecture
+- **Responsabilité unique** par module
+- **APIs claires** entre les gestionnaires
+- **Tests isolés** possibles
+- **Documentation** à jour
+
+### Structure des Commits
+
+- `feat:` Nouvelle fonctionnalité
+- `fix:` Correction de bug
+- `refactor:` Refactoring sans changement fonctionnel
+- `style:` Modifications CSS/UI
+- `docs:` Mise à jour documentation
+- `test:` Ajout/modification tests
 
 ## 📄 Licence
 
@@ -350,10 +480,41 @@ copies or substantial portions of the Software.
 3. **Vérification Docker** : `docker ps` et `docker logs`
 4. **Reset complet** : `./deploy.sh stop && ./deploy.sh full`
 
+### Debug Édition
+```javascript
+// Dans la console navigateur, vérifier l'état :
+console.log('App:', window.planningApp);
+console.log('EditManager:', window.planningApp.editManager);
+console.log('États édition:', window.planningApp.editManager.editingStates);
+```
+
 ### Ressources Utiles
 - **Documentation PWA** : [web.dev/progressive-web-apps](https://web.dev/progressive-web-apps/)
 - **Test PWA** : [www.pwabuilder.com](https://www.pwabuilder.com/)
 - **Lighthouse audit** : F12 → Lighthouse → PWA
+- **Architecture modulaire** : Voir `assets/js/` pour exemples
+
+---
+
+## 🎉 Nouveautés Version 2.0
+
+### ✏️ Édition en Ligne
+- **Modification directe** des horaires dans l'interface
+- **Validation temps réel** avec retour visuel
+- **Sauvegarde automatique** des changements
+- **Annulation** avec restauration d'état
+
+### 🏗️ Architecture Refactorisée
+- **Code modulaire** pour maintenance facilitée
+- **Performance améliorée** avec chargement optimisé
+- **Extensibilité** pour futures fonctionnalités
+- **Debug simplifié** avec séparation des responsabilités
+
+### 💾 Gestion Fichiers Avancée
+- **Export CSV** avec horodatage
+- **Import/Export presse-papiers** pour partage rapide
+- **Sauvegarde automatique** périodique
+- **Validation robuste** des fichiers
 
 ---
 
