@@ -152,12 +152,6 @@ Modifier `assets/css/variables.css` :
 # Ou F12 → Application → Storage → Clear storage
 ```
 
-## 🔮 Évolutions prévues
-
-**Version 2.1** : Templates d'horaires, copie entre jours, validation avancée  
-**Version 2.2** : Statistiques avancées, thèmes personnalisés, export PDF  
-**Version 3.0** : Synchronisation cloud, mode équipe, notifications push
-
 ## 📄 Licence
 
 MIT License - Libre d'utilisation, modification et distribution.
