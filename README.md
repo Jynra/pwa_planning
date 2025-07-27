@@ -24,7 +24,7 @@ Une application web progressive (PWA) moderne et intuitive pour visualiser et g√
 
 ```bash
 # 1. Cloner le projet
-git clone [url-du-projet] planning-travail
+git clone https://github.com/Jynra/pwa_planning planning-travail
 cd planning-travail
 
 # 2. Lancer l'application
