@@ -1,6 +1,7 @@
 /**
  * Application principale de Planning de Travail - PWA
  * Version refactorisée et modulaire avec EditManager
+ * CORRECTION: refreshCurrentWeekDisplay pour éviter la disparition des jours
  */
 class PlanningApp {
     constructor() {
@@ -283,18 +284,56 @@ class PlanningApp {
     }
 
     /**
-     * Rafraîchit l'affichage de la semaine courante (pour EditManager)
+     * CORRECTION: Rafraîchit l'affichage de la semaine courante (pour EditManager)
+     * Version corrigée pour éviter la disparition des jours
      */
     refreshCurrentWeekDisplay() {
-        // Sauvegarder l'état d'édition avant le refresh
-        const currentEditStates = new Map(this.editManager.editingStates);
+        console.log('🔄 Rafraîchissement de l\'affichage...');
         
-        // Réorganiser et afficher
-        this.weekManager.organizeWeeks(this.planningData);
-        this.displayWeek();
-        
-        // Restaurer l'état d'édition
-        this.editManager.editingStates = currentEditStates;
+        // Vérifier qu'on a des données
+        if (!this.planningData || this.planningData.length === 0) {
+            console.warn('⚠️ Pas de données à afficher');
+            this.displayManager.showNoDataWithHelp();
+            return;
+        }
+
+        try {
+            // Sauvegarder l'index de la semaine actuelle
+            const currentWeekIndex = this.weekManager.getCurrentWeekIndex();
+            
+            // Réorganiser les semaines avec les nouvelles données
+            this.weekManager.organizeWeeks(this.planningData);
+            
+            // Vérifier qu'on a encore des semaines
+            if (!this.weekManager.hasWeeks()) {
+                console.warn('⚠️ Aucune semaine après réorganisation');
+                this.displayManager.showNoDataWithHelp();
+                return;
+            }
+            
+            // Restaurer l'index de semaine (ou ajuster si nécessaire)
+            const weeks = this.weekManager.getWeeks();
+            if (currentWeekIndex >= 0 && currentWeekIndex < weeks.length) {
+                this.weekManager.currentWeekIndex = currentWeekIndex;
+            } else {
+                // Si l'index n'est plus valide, trouver la semaine courante
+                this.weekManager.findCurrentWeek();
+            }
+            
+            // Réafficher la semaine
+            this.displayWeek();
+            
+            console.log(`✅ Affichage rafraîchi: semaine ${this.weekManager.getCurrentWeekIndex() + 1}/${weeks.length}`);
+            
+        } catch (error) {
+            console.error('❌ Erreur lors du rafraîchissement:', error);
+            this.displayManager.showError('Erreur lors du rafraîchissement de l\'affichage');
+            
+            // En cas d'erreur, recharger complètement
+            setTimeout(() => {
+                this.processDataWithValidation();
+            }, 500);
+        }
     }
 
     /**

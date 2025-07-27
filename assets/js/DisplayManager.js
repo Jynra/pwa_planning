@@ -1,7 +1,7 @@
 /**
  * Gestionnaire d'affichage - Planning de Travail PWA
  * Fichier: assets/js/DisplayManager.js
- * CORRECTION: Rendu de cartes de jour temporaire sans EditRenderer
+ * CORRECTION: Méthode renderDayCard corrigée pour éviter la disparition des jours
  */
 class DisplayManager {
     constructor(app) {
@@ -193,7 +193,7 @@ class DisplayManager {
         } else {
             daysWithData.forEach(day => {
                 const isToday = day.date.getTime() === today.getTime();
-                // CORRECTION: Utiliser renderDayCard au lieu de editRenderer
+                // CORRECTION: Utiliser notre propre méthode renderDayCard
                 html += this.renderDayCard(day.name, day.date, day.data, isToday);
             });
         }
@@ -204,7 +204,7 @@ class DisplayManager {
     }
 
     /**
-     * CORRECTION: Rendu d'une carte de jour (temporaire sans EditRenderer)
+     * CORRECTION: Rendu d'une carte de jour complet avec gestion de l'édition
      */
     renderDayCard(dayName, date, dayData, isToday) {
         const dayNumber = date.getDate();
@@ -220,7 +220,7 @@ class DisplayManager {
         
         let html = `<div class="day-card ${isEditing ? 'editing' : ''}" id="${dayId}">`;
         
-        // En-tête
+        // En-tête de la carte
         html += `<div class="day-header">`;
         html += `<div><div class="day-name">${dayName}</div><div class="day-number">${dayNumber}</div></div>`;
         html += `<div class="day-badges">`;
@@ -250,60 +250,94 @@ class DisplayManager {
         
         // Contenu principal
         if (isEditing) {
+            // Mode édition : utiliser le formulaire d'édition
             html += this.app.editManager.renderEditForm(dayId, dayData);
         } else {
-            // Mode visualisation
-            if (hasWork && !isRestDay) {
-                html += `<div class="schedule-section">`;
-                html += `<div class="schedule-title"><span class="info-icon">🕒</span>Horaires de la journée :</div>`;
-                
-                let totalHours = 0;
-                const timeSlots = TimeUtils.organizeTimeSlots(dayData.entries);
-                
-                timeSlots.forEach(slot => {
-                    const isNightShift = TimeUtils.isNightShift(slot.start, slot.end);
-                    const duration = TimeUtils.calculateSlotDuration(slot.start, slot.end);
-                    totalHours += duration;
-                    
-                    html += `<div class="time-slot ${isNightShift ? 'night-slot' : ''}">`;
-                    html += `<div class="time-dot ${isNightShift ? 'night-dot' : ''}"></div>`;
-                    html += `<div class="time-text">${slot.start}-${slot.end}</div>`;
-                    html += `<div class="duration-badge">${duration.toFixed(1)}h</div>`;
+            // Mode visualisation : afficher les données normalement
+            html += this.renderViewContent(dayData, hasWork, isRestDay);
+        }
+        
+        html += `</div>`;
+        return html;
+    }
+
+    /**
+     * CORRECTION: Rendu du contenu en mode visualisation
+     */
+    renderViewContent(dayData, hasWork, isRestDay) {
+        let html = '';
+        
+        if (hasWork && !isRestDay) {
+            html += this.renderScheduleSection(dayData);
+        }
+        
+        if (hasWork) {
+            html += this.renderDayInfo(dayData);
+        }
+        
+        return html;
+    }
+
+    /**
+     * CORRECTION: Rendu de la section horaires (mode visualisation)
+     */
+    renderScheduleSection(dayData) {
+        let html = `<div class="schedule-section">`;
+        html += `<div class="schedule-title">`;
+        html += `<span class="info-icon">🕒</span>Horaires de la journée :`;
+        html += `</div>`;
+        
+        let totalHours = 0;
+        const timeSlots = TimeUtils.organizeTimeSlots(dayData.entries);
+        
+        timeSlots.forEach(slot => {
+            const isNightShift = TimeUtils.isNightShift(slot.start, slot.end);
+            const duration = TimeUtils.calculateSlotDuration(slot.start, slot.end);
+            totalHours += duration;
+            
+            html += `<div class="time-slot ${isNightShift ? 'night-slot' : ''}">`;
+            html += `<div class="time-dot ${isNightShift ? 'night-dot' : ''}"></div>`;
+            html += `<div class="time-text">${slot.start}-${slot.end}</div>`;
+            html += `<div class="duration-badge">${duration.toFixed(1)}h</div>`;
+            html += `</div>`;
+        });
+        
+        if (totalHours > 0) {
+            html += `<div class="total-hours">💚 Total: ${totalHours.toFixed(1)}h</div>`;
+        }
+        
+        html += `</div>`;
+        return html;
+    }
+
+    /**
+     * CORRECTION: Rendu des informations du jour (mode visualisation)
+     */
+    renderDayInfo(dayData) {
+        let html = `<div class="info-section">`;
+        const uniqueInfo = new Set();
+        
+        dayData.entries.forEach(entry => {
+            if (entry.poste && entry.poste.toLowerCase() !== 'congé') {
+                const poste = entry.poste;
+                if (!uniqueInfo.has(`poste:${poste}`)) {
+                    html += `<div class="info-item">`;
+                    html += `<span class="info-icon">📍</span>${poste}`;
                     html += `</div>`;
-                });
-                
-                if (totalHours > 0) {
-                    html += `<div class="total-hours">💚 Total: ${totalHours.toFixed(1)}h</div>`;
+                    uniqueInfo.add(`poste:${poste}`);
                 }
-                html += `</div>`;
             }
             
-            // Informations du jour
-            if (hasWork) {
-                html += `<div class="info-section">`;
-                const uniqueInfo = new Set();
-                
-                dayData.entries.forEach(entry => {
-                    if (entry.poste && entry.poste.toLowerCase() !== 'congé') {
-                        const poste = entry.poste;
-                        if (!uniqueInfo.has(`poste:${poste}`)) {
-                            html += `<div class="info-item"><span class="info-icon">📍</span>${poste}</div>`;
-                            uniqueInfo.add(`poste:${poste}`);
-                        }
-                    }
-                    
-                    if (entry.taches && entry.taches.toLowerCase() !== 'jour de repos') {
-                        const taches = entry.taches;
-                        if (!uniqueInfo.has(`taches:${taches}`)) {
-                            html += `<div class="info-item"><span class="info-icon">✅</span>${taches}</div>`;
-                            uniqueInfo.add(`taches:${taches}`);
-                        }
-                    }
-                });
-                
-                html += `</div>`;
+            if (entry.taches && entry.taches.toLowerCase() !== 'jour de repos') {
+                const taches = entry.taches;
+                if (!uniqueInfo.has(`taches:${taches}`)) {
+                    html += `<div class="info-item">`;
+                    html += `<span class="info-icon">✅</span>${taches}`;
+                    html += `</div>`;
+                    uniqueInfo.add(`taches:${taches}`);
+                }
             }
-        }
+        });
         
         html += `</div>`;
         return html;
