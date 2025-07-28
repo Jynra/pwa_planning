@@ -1,0 +1,468 @@
+/**
+ * Styles pour le système de profils - Planning de Travail PWA
+ * Fichier: assets/css/profiles.css
+ */
+
+/* ========================================
+   AFFICHAGE DU PROFIL ACTUEL DANS LE HEADER
+   ======================================== */
+
+.current-profile-display {
+    background: linear-gradient(135deg, rgba(100, 181, 246, 0.15), rgba(100, 181, 246, 0.08));
+    border: 1px solid rgba(100, 181, 246, 0.3);
+    border-radius: 12px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    color: var(--accent-blue);
+    font-weight: 500;
+    margin-bottom: 8px;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.dark-theme .current-profile-display {
+    background: linear-gradient(135deg, rgba(90, 159, 212, 0.2), rgba(90, 159, 212, 0.1));
+    border-color: rgba(90, 159, 212, 0.4);
+    color: var(--accent-blue);
+}
+
+/* ========================================
+   MODALE DE GESTION DES PROFILS
+   ======================================== */
+
+.profiles-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.profiles-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.profiles-content {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 0;
+    max-width: 480px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    transform: translateY(-20px) scale(0.95);
+    transition: all 0.3s ease;
+}
+
+.profiles-modal.show .profiles-content {
+    transform: translateY(0) scale(1);
+}
+
+.profiles-header {
+    background: linear-gradient(135deg, var(--accent-blue), #42a5f5);
+    color: white;
+    padding: 20px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.profiles-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.profiles-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    font-size: 1.2rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.profiles-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.profiles-body {
+    padding: 25px;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+/* ========================================
+   INFORMATIONS DU PROFIL ACTUEL
+   ======================================== */
+
+.current-profile-info {
+    background: linear-gradient(135deg, rgba(129, 199, 132, 0.1), rgba(129, 199, 132, 0.05));
+    border: 1px solid rgba(129, 199, 132, 0.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.current-profile-name {
+    font-weight: 600;
+    color: var(--accent-green);
+    margin-bottom: 4px;
+}
+
+.current-profile-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.dark-theme .current-profile-info {
+    background: rgba(129, 199, 132, 0.15);
+}
+
+/* ========================================
+   ACTIONS RAPIDES
+   ======================================== */
+
+.profiles-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.profile-btn {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.9rem;
+}
+
+.profile-btn.new {
+    background: var(--accent-green);
+    color: white;
+}
+
+.profile-btn.new:hover {
+    background: #66bb6a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(129, 199, 132, 0.3);
+}
+
+.profile-btn.import {
+    background: var(--accent-orange);
+    color: white;
+}
+
+.profile-btn.import:hover {
+    background: #d49843;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 183, 77, 0.3);
+}
+
+/* ========================================
+   LISTE DES PROFILS
+   ======================================== */
+
+.profile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.profile-card {
+    background: var(--bg-primary);
+    border: 2px solid transparent;
+    border-radius: 15px;
+    padding: 16px 20px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.profile-card:hover {
+    border-color: var(--accent-blue);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px var(--shadow);
+}
+
+.profile-card.active {
+    border-color: var(--accent-green);
+    background: rgba(129, 199, 132, 0.1);
+}
+
+.profile-card.active:hover {
+    border-color: var(--accent-green);
+}
+
+.profile-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.profile-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.profile-details h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 8px;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.profile-card:hover .profile-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    color: var(--text-muted);
+    min-width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn:hover {
+    background: var(--border-color);
+    transform: scale(1.1);
+}
+
+.action-btn.edit:hover {
+    color: var(--accent-blue);
+    background: rgba(100, 181, 246, 0.1);
+}
+
+.action-btn.delete:hover {
+    color: var(--accent-red);
+    background: rgba(255, 138, 128, 0.1);
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 480px) {
+    .profiles-content {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .profiles-header {
+        padding: 16px 20px;
+    }
+
+    .profiles-title {
+        font-size: 1.1rem;
+    }
+
+    .profiles-body {
+        padding: 20px;
+    }
+
+    .profiles-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .profile-btn {
+        padding: 14px 16px;
+        font-size: 0.95rem;
+    }
+
+    .profile-card {
+        padding: 14px 16px;
+    }
+
+    .profile-details h4 {
+        font-size: 0.95rem;
+    }
+
+    .action-btn {
+        padding: 6px;
+        min-width: 28px;
+        height: 28px;
+        font-size: 0.9rem;
+    }
+
+    .current-profile-display {
+        font-size: 0.8rem;
+        padding: 5px 10px;
+    }
+}
+
+/* ========================================
+   MODE SOMBRE
+   ======================================== */
+
+.dark-theme .profiles-content {
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+}
+
+.dark-theme .profile-card {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.dark-theme .profile-card.active {
+    background: rgba(129, 199, 132, 0.15);
+}
+
+.dark-theme .action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dark-theme .action-btn.edit:hover {
+    background: rgba(90, 159, 212, 0.2);
+}
+
+.dark-theme .action-btn.delete:hover {
+    background: rgba(212, 117, 112, 0.2);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes profileFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.profile-card {
+    animation: profileFadeIn 0.3s ease forwards;
+}
+
+.profile-card:nth-child(1) { animation-delay: 0.05s; }
+.profile-card:nth-child(2) { animation-delay: 0.1s; }
+.profile-card:nth-child(3) { animation-delay: 0.15s; }
+.profile-card:nth-child(4) { animation-delay: 0.2s; }
+.profile-card:nth-child(5) { animation-delay: 0.25s; }
+
+/* ========================================
+   ACCESSIBILITÉ
+   ======================================== */
+
+.profile-btn:focus,
+.action-btn:focus,
+.profiles-close:focus,
+.profile-card:focus {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .profiles-modal,
+    .profiles-content,
+    .profile-btn,
+    .action-btn,
+    .profile-card {
+        transition: none;
+        animation: none;
+    }
+    
+    .profile-card:hover,
+    .action-btn:hover,
+    .profile-btn:hover {
+        transform: none;
+    }
+}
+
+/* ========================================
+   ÉTATS D'INTERACTION
+   ======================================== */
+
+.profile-card.selecting {
+    border-color: var(--accent-blue);
+    background: rgba(100, 181, 246, 0.1);
+    pointer-events: none;
+}
+
+.profile-card.selecting::after {
+    content: '⏳';
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+}
+
+.profiles-modal.loading .profile-list {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ========================================
+   SCROLLBAR PERSONNALISÉE POUR LA LISTE
+   ======================================== */
+
+.profiles-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.profiles-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.profiles-body::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.profiles-body::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+.dark-theme .profiles-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.dark-theme .profiles-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
