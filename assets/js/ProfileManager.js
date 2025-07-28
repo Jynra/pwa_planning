@@ -253,77 +253,125 @@ class ProfileManager {
 	}
 
 	/**
-	 * Supprime un profil
+	 * Supprime un profil - VERSION CORRIGÉE
 	 */
 	deleteProfile(profileId) {
-		if (this.profiles.length <= 1) {
-			throw new Error('Impossible de supprimer le dernier profil');
-		}
+	    if (this.profiles.length <= 1) {
+	        throw new Error('Impossible de supprimer le dernier profil');
+	    }
 
-		const profileIndex = this.profiles.findIndex(p => p && p.id === profileId);
-		if (profileIndex === -1) {
-			throw new Error('Profil introuvable');
-		}
+	    const profileIndex = this.profiles.findIndex(p => p && p.id === profileId);
+	    if (profileIndex === -1) {
+	        throw new Error('Profil introuvable');
+	    }
 
-		const deletedProfile = this.profiles[profileIndex];
+	    const deletedProfile = this.profiles[profileIndex];
+	    console.log(`🗑️ Suppression du profil: ${deletedProfile.name}`);
+	
+	    // CORRECTION : Si on supprime le profil actuel, gérer le basculement proprement
+	    if (this.currentProfileId === profileId) {
+	        console.log('⚠️ Suppression du profil actuel, basculement nécessaire');
 		
-		// Si on supprime le profil actuel, passer au premier disponible
-		if (this.currentProfileId === profileId) {
-			const remainingProfiles = this.profiles.filter(p => p && p.id !== profileId);
-			if (remainingProfiles.length > 0) {
-				this.currentProfileId = remainingProfiles[0].id;
-				this.saveCurrentProfile();
-			}
-		}
-
-		// Supprimer les données du profil
-		this.deleteProfileData(profileId);
+	        // Trouver le profil de destination (le premier profil différent)
+	        const remainingProfiles = this.profiles.filter(p => p && p.id !== profileId);
+	        if (remainingProfiles.length === 0) {
+	            throw new Error('Aucun profil de destination disponible');
+	        }
 		
-		// Supprimer le profil de la liste
-		this.profiles.splice(profileIndex, 1);
-		this.saveProfiles();
-		this.updateUI();
+	        const destinationProfile = remainingProfiles[0];
+	        console.log(`🔄 Basculement vers: ${destinationProfile.name}`);
 		
-		console.log(`🗑️ Profil supprimé: ${deletedProfile.name}`);
-		return deletedProfile;
+	        // ÉTAPE 1: Supprimer immédiatement les données du profil à supprimer
+	        // (on ne veut PAS les sauvegarder car on supprime le profil)
+	        this.deleteProfileData(profileId);
+		
+	        // ÉTAPE 2: Changer le profil actuel AVANT de charger les nouvelles données
+	        this.currentProfileId = destinationProfile.id;
+	        this.saveCurrentProfile();
+		
+	        // ÉTAPE 3: Charger les données du profil de destination
+	        const destinationData = this.loadProfileData(destinationProfile.id);
+		
+	        // ÉTAPE 4: Mettre à jour l'application avec les bonnes données
+	        this.app.planningData = destinationData;
+		
+	        console.log(`📂 Données du profil de destination chargées: ${destinationData.length} entrées`);
+		
+	    } else {
+	        // Si on ne supprime pas le profil actuel, juste supprimer les données
+	        this.deleteProfileData(profileId);
+	    }
+	
+	    // Supprimer le profil de la liste
+	    this.profiles.splice(profileIndex, 1);
+	    this.saveProfiles();
+	
+	    // Mettre à jour l'interface
+	    this.updateUI();
+	
+	    // Si on a supprimé le profil actuel, retraiter les données de l'app
+	    if (profileId === this.currentProfileId) {
+	        // Forcer le retraitement des données
+	        setTimeout(() => {
+	            this.app.processDataWithValidation();
+	        }, 100);
+	    }
+	
+	    console.log(`✅ Profil "${deletedProfile.name}" supprimé avec succès`);
+	    return deletedProfile;
 	}
 
 	/**
-	 * Bascule vers un profil
+	 * Bascule vers un profil - VERSION CORRIGÉE
 	 */
 	switchToProfile(profileId) {
-		const profile = this.profiles.find(p => p && p.id === profileId);
-		if (!profile) {
-			throw new Error('Profil introuvable');
-		}
-
-		const oldProfileId = this.currentProfileId;
-		
-		// Sauvegarder les données du profil actuel
-		if (oldProfileId && this.app.planningData && this.app.planningData.length > 0) {
-			this.saveProfileData(oldProfileId, this.app.planningData);
-		}
-
-		// Changer de profil
-		this.currentProfileId = profileId;
-		this.saveCurrentProfile();
-		
-		// Charger les données du nouveau profil
-		const profileData = this.loadProfileData(profileId);
-		this.app.planningData = profileData;
-		
-		// Mettre à jour l'interface
-		this.updateUI();
-		
-		// Retraiter les données
-		this.app.processDataWithValidation();
-		
-		console.log(`🔄 Basculement vers profil: ${profile.name}`);
-		
-		// Afficher confirmation
-		this.app.showSaveIndicator(`👤 Profil actuel: ${profile.name}`, 2000);
-		
-		return profile;
+	    const profile = this.profiles.find(p => p && p.id === profileId);
+	    if (!profile) {
+	        throw new Error('Profil introuvable');
+	    }
+	
+	    // Si c'est déjà le profil actuel, ne rien faire
+	    if (this.currentProfileId === profileId) {
+	        console.log(`👤 Profil "${profile.name}" déjà actuel`);
+	        return profile;
+	    }
+	
+	    const oldProfileId = this.currentProfileId;
+	    const oldProfile = this.getCurrentProfile();
+	
+	    console.log(`🔄 Basculement: ${oldProfile?.name || 'Aucun'} → ${profile.name}`);
+	
+	    // CORRECTION : Sauvegarder les données du profil actuel AVANT de changer
+	    if (oldProfileId && this.app.planningData && this.app.planningData.length > 0) {
+	        console.log(`💾 Sauvegarde des données du profil "${oldProfile?.name}": ${this.app.planningData.length} entrées`);
+	        const saved = this.saveProfileData(oldProfileId, this.app.planningData);
+	        if (!saved) {
+	            console.warn('⚠️ Échec de la sauvegarde du profil précédent');
+	        }
+	    }
+	
+	    // Changer de profil
+	    this.currentProfileId = profileId;
+	    this.saveCurrentProfile();
+	
+	    // Charger les données du nouveau profil
+	    const profileData = this.loadProfileData(profileId);
+	    console.log(`📂 Chargement des données du profil "${profile.name}": ${profileData.length} entrées`);
+	
+	    // Mettre à jour l'application avec les nouvelles données
+	    this.app.planningData = profileData;
+	
+	    // Mettre à jour l'interface
+	    this.updateUI();
+	
+	    // Retraiter les données dans l'application
+	    this.app.processDataWithValidation();
+	
+	    // Afficher confirmation
+	    this.app.showSaveIndicator(`👤 Profil actuel: ${profile.name}`, 2000);
+	
+	    console.log(`✅ Basculement vers "${profile.name}" terminé`);
+	    return profile;
 	}
 
 	/**
