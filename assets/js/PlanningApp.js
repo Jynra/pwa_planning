@@ -31,38 +31,92 @@ class PlanningApp {
 	}
 
 	/**
-	 * Initialisation complète de l'application
+	 * CORRECTION : Ordre d'initialisation dans PlanningApp.js
+	 * REMPLACEZ ces méthodes dans votre PlanningApp.js
+	 */
+
+	/**
+	 * Initialisation complète de l'application - VERSION CORRIGÉE
 	 */
 	async initializeApp() {
 		console.log('🚀 Initialisation de Planning de Travail...');
-		
+	
 		// Vérifier la disponibilité du stockage
 		if (!this.dataManager.isStorageAvailable()) {
 			this.displayManager.showError('Stockage local non disponible. Les données ne pourront pas être sauvegardées.');
 			this.displayManager.showNoData();
 			return;
 		}
-
-		// Initialiser les profils en premier
-		console.log('👤 Initialisation du système de profils...');
-		
-		// Le ProfileManager se charge de l'initialisation automatique
-		// et charge les données du profil actuel
-		
-		// Traiter les données chargées par le ProfileManager
+	
+		// CORRECTION : Attendre que ProfileManager soit complètement initialisé
+		console.log('👤 Attente de l\'initialisation des profils...');
+	
+		// Attendre que ProfileManager soit prêt
+		await this.waitForProfileManager();
+	
+		console.log('✅ ProfileManager prêt, traitement des données...');
+	
+		// Maintenant traiter les données chargées par le ProfileManager
 		this.processDataWithValidation();
+	}
+	
+	/**
+	 * NOUVEAU : Attendre que ProfileManager soit complètement initialisé
+	 */
+	async waitForProfileManager() {
+		return new Promise((resolve) => {
+			const checkProfileManager = () => {
+				if (this.profileManager && 
+					this.profileManager.profiles && 
+					this.profileManager.profiles.length > 0 && 
+					this.profileManager.currentProfileId) {
+					
+					console.log('👤 ProfileManager prêt avec profil:', this.profileManager.getCurrentProfile()?.name);
+					resolve();
+				} else {
+					console.log('⏳ Attente ProfileManager...');
+					setTimeout(checkProfileManager, 100);
+				}
+			};
+		
+			// Commencer la vérification après un délai initial
+			setTimeout(checkProfileManager, 50);
+		});
 	}
 
 	/**
-	 * Traitement des données avec validation
+	 * Traitement des données avec validation - VERSION CORRIGÉE
 	 */
 	processDataWithValidation() {
+		// CORRECTION : Vérifier si on a des données à traiter
 		if (!this.planningData || this.planningData.length === 0) {
-			this.displayManager.showNoDataWithHelp();
-			return;
+			// Si ProfileManager a marqué qu'on a besoin de traiter les données, réessayer
+			if (this._needsDataProcessing && this.profileManager && this.profileManager.isReady()) {
+				const currentProfile = this.profileManager.getCurrentProfile();
+				if (currentProfile) {
+					console.log('🔄 Rechargement des données du profil:', currentProfile.name);
+					const profileData = this.profileManager.loadProfileData(currentProfile.id);
+					this.planningData = profileData;
+					this._needsDataProcessing = false; // Reset du flag
+				
+					// Si on a maintenant des données, continuer le traitement
+					if (this.planningData.length === 0) {
+						this.displayManager.showNoDataWithHelp();
+						return;
+					}
+				} else {
+					this.displayManager.showNoDataWithHelp();
+					return;
+				}
+			} else {
+				this.displayManager.showNoDataWithHelp();
+				return;
+			}
 		}
-
+	
 		try {
+			console.log(`🔄 Traitement de ${this.planningData.length} entrées...`);
+		
 			// Reconstituer les objets Date si nécessaire
 			this.planningData = this.planningData.map(entry => {
 				if (entry.dateObj && typeof entry.dateObj === 'string') {
@@ -72,37 +126,46 @@ class PlanningApp {
 				}
 				return entry;
 			});
-
+		
 			// Filtrer les entrées avec des dates invalides
 			const validData = this.planningData.filter(entry => 
 				entry.dateObj && !isNaN(entry.dateObj.getTime())
 			);
-
+		
 			if (validData.length !== this.planningData.length) {
 				console.warn(`⚠️ ${this.planningData.length - validData.length} entrées avec dates invalides ignorées`);
 				this.planningData = validData;
 			}
-
+		
 			if (this.planningData.length === 0) {
 				this.displayManager.showNoDataWithHelp();
 				return;
 			}
-
+		
 			// Organiser et afficher
 			this.weekManager.organizeWeeks(this.planningData);
-			
+		
 			if (!this.weekManager.hasWeeks()) {
 				this.displayManager.showNoDataWithHelp();
 				return;
 			}
-			
+		
 			this.weekManager.findCurrentWeek();
 			this.displayWeek();
 			this.displayManager.showPlanning();
 			this.displayManager.updateFooter();
-			
+		
+			// Afficher un message de confirmation si on vient de charger un profil
+			if (this._needsDataProcessing && this.profileManager) {
+				const currentProfile = this.profileManager.getCurrentProfile();
+				if (currentProfile) {
+					console.log(`✅ Profil "${currentProfile.name}" chargé avec ${this.planningData.length} entrées`);
+				}
+				this._needsDataProcessing = false;
+			}
+		
 			console.log(`✅ Planning affiché: ${this.planningData.length} entrées sur ${this.weekManager.getWeeks().length} semaines`);
-			
+		
 		} catch (error) {
 			console.error('❌ Erreur lors du traitement des données:', error);
 			this.displayManager.showError('Erreur lors du traitement du planning');
@@ -409,111 +472,111 @@ class PlanningApp {
 	 * REMPLACEZ cette méthode dans votre PlanningApp.js
 	 */
 	resetPlanningWithConfirm() {
-	    try {
-	        // Vérifier que profileManager existe
-	        if (!this.profileManager) {
-	            console.warn('⚠️ ProfileManager non disponible, reset standard');
-	            this.resetPlanningStandard();
-	            return;
-	        }
+		try {
+			// Vérifier que profileManager existe
+			if (!this.profileManager) {
+				console.warn('⚠️ ProfileManager non disponible, reset standard');
+				this.resetPlanningStandard();
+				return;
+			}
 		
-	        const currentProfile = this.profileManager.getCurrentProfile();
+			const currentProfile = this.profileManager.getCurrentProfile();
 		
-	        // Vérifier que le profil actuel existe
-	        if (!currentProfile) {
-	            console.warn('⚠️ Aucun profil actuel, reset standard');
-	            this.resetPlanningStandard();
-	            return;
-	        }
+			// Vérifier que le profil actuel existe
+			if (!currentProfile) {
+				console.warn('⚠️ Aucun profil actuel, reset standard');
+				this.resetPlanningStandard();
+				return;
+			}
 		
-	        const message = `Êtes-vous sûr de vouloir effacer le planning du profil "${currentProfile.name}" ?\n\n` +
-	                       `Cette action supprimera toutes les données de ce profil.`;
+			const message = `Êtes-vous sûr de vouloir effacer le planning du profil "${currentProfile.name}" ?\n\n` +
+						   `Cette action supprimera toutes les données de ce profil.`;
 		
-	        if (confirm(message)) {
-	            this.resetCurrentProfile();
-	        }
-	    } catch (error) {
-	        console.error('❌ Erreur resetPlanningWithConfirm:', error);
-	        // Fallback vers reset standard
-	        this.resetPlanningStandard();
-	    }
+			if (confirm(message)) {
+				this.resetCurrentProfile();
+			}
+		} catch (error) {
+			console.error('❌ Erreur resetPlanningWithConfirm:', error);
+			// Fallback vers reset standard
+			this.resetPlanningStandard();
+		}
 	}
-	
+
 	/**
 	 * NOUVEAU : Reset du profil actuel uniquement
 	 */
 	resetCurrentProfile() {
-	    try {
-	        this.displayManager.showLoading();
+		try {
+			this.displayManager.showLoading();
 		
-	        const currentProfile = this.profileManager.getCurrentProfile();
+			const currentProfile = this.profileManager.getCurrentProfile();
 		
-	        // Effacer les données du profil actuel
-	        this.planningData = [];
-	        this.weekManager.reset();
-	        this.editManager.cleanup();
+			// Effacer les données du profil actuel
+			this.planningData = [];
+			this.weekManager.reset();
+			this.editManager.cleanup();
 		
-	        // Supprimer les données du profil
-	        if (currentProfile) {
-	            this.profileManager.deleteProfileData(currentProfile.id);
-	        }
+			// Supprimer les données du profil
+			if (currentProfile) {
+				this.profileManager.deleteProfileData(currentProfile.id);
+			}
 		
-	        // Reset de l'input file
-	        if (this.csvFileInput) {
-	            this.csvFileInput.value = '';
-	        }
+			// Reset de l'input file
+			if (this.csvFileInput) {
+				this.csvFileInput.value = '';
+			}
 		
-	        // Afficher l'écran vide après un délai
-	        setTimeout(() => {
-	            this.displayManager.showNoDataWithHelp();
-	            const profileName = currentProfile ? currentProfile.name : 'le profil';
-	            this.displayManager.showSaveIndicator(`🔄 ${profileName} effacé`);
-	        }, 500);
+			// Afficher l'écran vide après un délai
+			setTimeout(() => {
+				this.displayManager.showNoDataWithHelp();
+				const profileName = currentProfile ? currentProfile.name : 'le profil';
+				this.displayManager.showSaveIndicator(`🔄 ${profileName} effacé`);
+			}, 500);
 		
-	    } catch (error) {
-	        console.error('❌ Erreur resetCurrentProfile:', error);
-	        this.displayManager.showError('Erreur lors de la réinitialisation');
-	    }
+		} catch (error) {
+			console.error('❌ Erreur resetCurrentProfile:', error);
+			this.displayManager.showError('Erreur lors de la réinitialisation');
+		}
 	}
-	
+
 	/**
 	 * NOUVEAU : Reset standard (sans profils)
 	 */
 	resetPlanningStandard() {
-	    try {
-	        const hasData = this.planningData && this.planningData.length > 0;
+		try {
+			const hasData = this.planningData && this.planningData.length > 0;
 		
-	        if (hasData) {
-	            const message = `Êtes-vous sûr de vouloir effacer le planning ?\n\n` +
-	                           `Cette action supprimera toutes les données.`;
+			if (hasData) {
+				const message = `Êtes-vous sûr de vouloir effacer le planning ?\n\n` +
+							   `Cette action supprimera toutes les données.`;
 			
-	            if (!confirm(message)) {
-	                return;
-	            }
-	        }
+				if (!confirm(message)) {
+					return;
+				}
+			}
 		
-	        this.displayManager.showLoading();
+			this.displayManager.showLoading();
 		
-	        // Effacer complètement les données
-	        this.planningData = [];
-	        this.weekManager.reset();
-	        this.editManager.cleanup();
+			// Effacer complètement les données
+			this.planningData = [];
+			this.weekManager.reset();
+			this.editManager.cleanup();
 		
-	        // Reset de l'input file
-	        if (this.csvFileInput) {
-	            this.csvFileInput.value = '';
-	        }
+			// Reset de l'input file
+			if (this.csvFileInput) {
+				this.csvFileInput.value = '';
+			}
 		
-	        // Afficher l'écran vide après un délai
-	        setTimeout(() => {
-	            this.displayManager.showNoDataWithHelp();
-	            this.displayManager.showSaveIndicator('🔄 Planning effacé');
-	        }, 500);
+			// Afficher l'écran vide après un délai
+			setTimeout(() => {
+				this.displayManager.showNoDataWithHelp();
+				this.displayManager.showSaveIndicator('🔄 Planning effacé');
+			}, 500);
 		
-	    } catch (error) {
-	        console.error('❌ Erreur resetPlanningStandard:', error);
-	        this.displayManager.showError('Erreur lors de la réinitialisation');
-	    }
+		} catch (error) {
+			console.error('❌ Erreur resetPlanningStandard:', error);
+			this.displayManager.showError('Erreur lors de la réinitialisation');
+		}
 	}
 
 	/**
