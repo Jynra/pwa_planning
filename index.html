@@ -32,8 +32,8 @@
     <link rel="stylesheet" href="assets/css/layout.css">
     <link rel="stylesheet" href="assets/css/components.css">
     <link rel="stylesheet" href="assets/css/responsive.css">
-    <!-- NOUVEAUX : CSS pour l'édition -->
     <link rel="stylesheet" href="assets/css/edit.css">
+    <link rel="stylesheet" href="assets/css/profiles.css">
 </head>
 <body>
     <div class="container">
@@ -44,9 +44,29 @@
 
         <!-- Header Card -->
         <div class="header-card">
-            <button class="reset-btn" id="resetBtn" title="Effacer le planning">🔄</button>
-            <button class="theme-toggle" id="themeToggle">🌙</button>
+            <button class="options-btn" id="optionsBtn" title="Options">⚙️</button>
+            
+            <!-- Menu déroulant des options -->
+            <div class="options-overlay" id="optionsOverlay"></div>
+            <div class="options-menu" id="optionsMenu">
+                <!-- NOUVELLE OPTION PROFILS -->
+                <div class="menu-item" id="profilesMenuItem">
+                    <span class="menu-icon">👤</span>
+                    <span class="menu-text">Profils</span>
+                </div>
+                <div class="menu-item" id="themeToggleMenu">
+                    <span class="menu-icon">🌙</span>
+                    <span class="menu-text">Mode sombre</span>
+                </div>
+                <div class="menu-item danger" id="resetBtnMenu">
+                    <span class="menu-icon">🔄</span>
+                    <span class="menu-text">Réinitialiser</span>
+                </div>
+            </div>
+            
             <h1>Planning de Travail</h1>
+            <!-- NOUVEAU : Affichage du profil actuel -->
+            <div class="current-profile-display" id="currentProfileDisplay">👤 Mon Planning</div>
             <div class="month" id="currentMonth">juin 2025</div>
             
             <div class="controls-row">
@@ -106,20 +126,57 @@
             <div>Semaine <span id="pageInfo">1 sur 1</span></div>
             <div><span id="eventCount">0</span> événements chargés</div>
         </div>
+
+        <!-- NOUVELLE MODALE : Gestion des Profils -->
+        <div class="profiles-modal" id="profilesModal">
+            <div class="profiles-content">
+                <div class="profiles-header">
+                    <div class="profiles-title">
+                        <span>👤</span>
+                        <span>Gestion des Profils</span>
+                    </div>
+                    <button class="profiles-close" id="profilesClose">✕</button>
+                </div>
+                
+                <div class="profiles-body">
+                    <!-- Profil actuel -->
+                    <div class="current-profile-info">
+                        <div class="current-profile-name" id="currentProfileModalName">Mon Planning</div>
+                        <div class="current-profile-desc">Profil actuellement sélectionné</div>
+                    </div>
+
+                    <!-- Actions rapides -->
+                    <div class="profiles-actions">
+                        <button class="profile-btn new" id="newProfileBtn">
+                            <span>➕</span>
+                            <span>Nouveau</span>
+                        </button>
+                        <button class="profile-btn import" id="importProfileBtn">
+                            <span>📁</span>
+                            <span>Importer</span>
+                        </button>
+                    </div>
+
+                    <!-- Liste des profils -->
+                    <div class="profile-list" id="profilesList">
+                        <!-- Les profils seront insérés ici par JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- JavaScript modulaire -->
     <script src="assets/js/TimeUtils.js"></script>
     <script src="assets/js/DataManager.js"></script>
     <script src="assets/js/WeekManager.js"></script>
-    <!-- NOUVEAUX : Gestionnaires modulaires -->
     <script src="assets/js/ThemeManager.js"></script>
     <script src="assets/js/DisplayManager.js"></script>
     <script src="assets/js/FileManager.js"></script>
-    <!-- NOUVEAUX : Édition -->
     <script src="assets/js/EditManager.js"></script>
     <script src="assets/js/EditRenderer.js"></script>
-    <!-- Application principale refactorisée -->
+    <!-- NOUVEAU : Gestionnaire de profils -->
+    <script src="assets/js/ProfileManager.js"></script>
     <script src="assets/js/PlanningApp.js"></script>
     <script src="assets/js/main.js"></script>
 </body>
