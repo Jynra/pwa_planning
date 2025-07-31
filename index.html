@@ -46,14 +46,30 @@
         <div class="header-card">
             <button class="options-btn" id="optionsBtn" title="Options">⚙️</button>
             
-            <!-- Menu déroulant des options -->
+            <!-- Menu déroulant des options AMÉLIORÉ -->
             <div class="options-overlay" id="optionsOverlay"></div>
             <div class="options-menu" id="optionsMenu">
-                <!-- NOUVELLE OPTION PROFILS -->
+                <!-- OPTION PROFILS -->
                 <div class="menu-item" id="profilesMenuItem">
                     <span class="menu-icon">👤</span>
                     <span class="menu-text">Profils</span>
                 </div>
+                
+                <!-- NOUVELLE OPTION AJOUTER UN JOUR -->
+                <div class="menu-item" id="addDayMenuItem">
+                    <span class="menu-icon">📅</span>
+                    <span class="menu-text">Ajouter un jour</span>
+                </div>
+                
+                <!-- NOUVELLE OPTION PLANNING VIERGE -->
+                <div class="menu-item" id="createBlankMenuItem">
+                    <span class="menu-icon">📋</span>
+                    <span class="menu-text">Planning vierge</span>
+                </div>
+                
+                <!-- Séparateur visuel -->
+                <hr style="margin: 8px 12px; border: none; border-top: 1px solid var(--border-color); opacity: 0.5;">
+                
                 <div class="menu-item" id="themeToggleMenu">
                     <span class="menu-icon">🌙</span>
                     <span class="menu-text">Mode sombre</span>
@@ -65,9 +81,9 @@
             </div>
             
             <h1>Planning de Travail</h1>
-            <!-- NOUVEAU : Affichage du profil actuel -->
-            <div class="current-profile-display" id="currentProfileDisplay">👤 Mon Planning</div>
-            <div class="month" id="currentMonth">juin 2025</div>
+            <!-- Affichage du profil actuel -->
+            <div class="current-profile-display" id="currentProfileDisplay">👤 Planning Principal</div>
+            <div class="month" id="currentMonth">juillet 2025</div>
             
             <div class="controls-row">
                 <button class="import-btn" id="importBtn">
@@ -81,7 +97,7 @@
                 <button class="nav-btn" id="prevWeek">‹</button>
                 <div class="week-info">
                     <div class="week-label">Semaine <span class="current-badge" id="currentBadge" style="display: none;">Actuelle</span></div>
-                    <div class="week-dates" id="weekDates">23 - 29 juin</div>
+                    <div class="week-dates" id="weekDates">28 juillet - 3 août</div>
                 </div>
                 <button class="nav-btn" id="nextWeek">›</button>
             </div>
@@ -113,7 +129,13 @@
         <div class="no-data" id="noData">
             <div class="no-data-icon">📋</div>
             <h3>Aucun planning chargé</h3>
-            <p>Importez un fichier CSV</p>
+            <p>Importez un fichier CSV ou créez un planning vierge</p>
+            <div style="margin-top: 20px; font-size: 0.85rem; color: var(--text-muted);">
+                <p>💡 <strong>Astuce :</strong> Utilisez le menu ⚙️ pour :</p>
+                <p>• 📅 Ajouter un jour spécifique</p>
+                <p>• 📋 Créer un planning vierge sur une période</p>
+                <p>• 👤 Gérer plusieurs profils de planning</p>
+            </div>
         </div>
 
         <!-- Planning Display -->
@@ -125,9 +147,12 @@
         <div class="footer" id="footer" style="display: none;">
             <div>Semaine <span id="pageInfo">1 sur 1</span></div>
             <div><span id="eventCount">0</span> événements chargés</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">
+                <kbd>Ctrl+D</kbd> Ajouter jour • <kbd>Ctrl+N</kbd> Planning vierge • <kbd>Ctrl+P</kbd> Profils
+            </div>
         </div>
 
-        <!-- NOUVELLE MODALE : Gestion des Profils -->
+        <!-- MODALE : Gestion des Profils -->
         <div class="profiles-modal" id="profilesModal">
             <div class="profiles-content">
                 <div class="profiles-header">
@@ -141,7 +166,7 @@
                 <div class="profiles-body">
                     <!-- Profil actuel -->
                     <div class="current-profile-info">
-                        <div class="current-profile-name" id="currentProfileModalName">Mon Planning</div>
+                        <div class="current-profile-name" id="currentProfileModalName">Planning Principal</div>
                         <div class="current-profile-desc">Profil actuellement sélectionné</div>
                     </div>
 
@@ -166,7 +191,7 @@
         </div>
     </div>
 
-    <!-- JavaScript modulaire -->
+    <!-- JavaScript modulaire AVEC LES NOUVELLES FONCTIONNALITÉS -->
     <script src="assets/js/TimeUtils.js"></script>
     <script src="assets/js/DataManager.js"></script>
     <script src="assets/js/WeekManager.js"></script>
@@ -175,8 +200,9 @@
     <script src="assets/js/FileManager.js"></script>
     <script src="assets/js/EditManager.js"></script>
     <script src="assets/js/EditRenderer.js"></script>
-    <!-- NOUVEAU : Gestionnaire de profils -->
     <script src="assets/js/ProfileManager.js"></script>
+    <!-- NOUVEAU : Gestionnaire de planning -->
+    <script src="assets/js/PlanningManager.js"></script>
     <script src="assets/js/PlanningApp.js"></script>
     <script src="assets/js/main.js"></script>
 </body>
