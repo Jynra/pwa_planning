@@ -476,6 +476,221 @@ class PlanningManager {
             let scheduleText = '';
             
             switch (selectedSchedule) {
+                case '8h-17h':
+                    scheduleText = '08:00-17:00';
+                    break;
+                case '9h-18h':
+                    scheduleText = '09:00-18:00';
+                    break;
+                case '8h-16h':
+                    scheduleText = '08:00-16:00';
+                    break;
+                case 'custom':
+                    if (customStartTime && customEndTime && customStartTime.value && customEndTime.value) {
+                        scheduleText = `${customStartTime.value}-${customEndTime.value}`;
+                    }
+                    break;
+            }
+            
+            previewDefaultSchedule.textContent = scheduleText || '-';
+        }
+
+        // Lieu par défaut
+        if (previewDefaultLocation) {
+            previewDefaultLocation.textContent = locationInput.value || '-';
+        }
+    }
+
+    /**
+     * Calcule le nombre de jours selon le type de planning
+     */
+    calculateDaysCount(startDate, endDate, planningType, dayCheckboxes) {
+        let count = 0;
+        const currentDate = new Date(startDate);
+        
+        while (currentDate <= endDate) {
+            const dayOfWeek = currentDate.getDay();
+            let includeDay = false;
+            
+            switch (planningType) {
+                case 'workdays':
+                    includeDay = dayOfWeek >= 1 && dayOfWeek <= 5; // Lun-Ven
+                    break;
+                case 'all':
+                    includeDay = true;
+                    break;
+                case 'custom':
+                    const selectedDays = Array.from(dayCheckboxes).map(cb => parseInt(cb.value));
+                    includeDay = selectedDays.includes(dayOfWeek);
+                    break;
+            }
+            
+            if (includeDay) {
+                count++;
+            }
+            
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        return count;
+    }
+
+    /**
+     * Exécute l'ajout d'un jour
+     */
+    executeAddDay(modal) {
+        try {
+            const data = this.extractAddDayData(modal);
+            
+            // Validation
+            if (!data.date) {
+                throw new Error('La date est obligatoire');
+            }
+            
+            // Vérifier si la date existe déjà
+            const existingEntry = this.app.planningData.find(entry => {
+                const entryDate = new Date(entry.dateObj);
+                const targetDate = new Date(data.date);
+                entryDate.setHours(0, 0, 0, 0);
+                targetDate.setHours(0, 0, 0, 0);
+                return entryDate.getTime() === targetDate.getTime();
+            });
+            
+            if (existingEntry) {
+                if (!confirm('Un jour existe déjà pour cette date. Voulez-vous le remplacer ?')) {
+                    return;
+                }
+                
+                // Supprimer l'entrée existante
+                this.app.planningData = this.app.planningData.filter(entry => {
+                    const entryDate = new Date(entry.dateObj);
+                    const targetDate = new Date(data.date);
+                    entryDate.setHours(0, 0, 0, 0);
+                    targetDate.setHours(0, 0, 0, 0);
+                    return entryDate.getTime() !== targetDate.getTime();
+                });
+            }
+            
+            // Créer la nouvelle entrée
+            const newEntry = {
+                date: data.date,
+                dateObj: new Date(data.date),
+                horaire: data.isWork ? `${data.startTime}-${data.endTime}` : 'Repos',
+                poste: data.location,
+                taches: data.tasks
+            };
+            
+            // Ajouter à la liste
+            this.app.planningData.push(newEntry);
+            
+            // Sauvegarder et actualiser
+            this.app.profileManager.saveCurrentProfileData();
+            this.app.processDataWithValidation();
+            
+            // Fermer la modale et afficher confirmation
+            this.closeModal(modal);
+            this.app.showSaveIndicator(`✅ Jour ajouté: ${new Date(data.date).toLocaleDateString('fr-FR')}`);
+            
+        } catch (error) {
+            console.error('❌ Erreur ajout jour:', error);
+            alert(`Erreur: ${error.message}`);
+        }
+    }
+
+    /**
+     * Exécute la création du planning vierge
+     */
+    executeCreateBlankPlanning(modal) {
+        try {
+            const data = this.extractBlankPlanningData(modal);
+            
+            // Validation
+            if (!data.startDate || !data.endDate) {
+                throw new Error('Les dates de début et fin sont obligatoires');
+            }
+            
+            if (new Date(data.endDate) < new Date(data.startDate)) {
+                throw new Error('La date de fin doit être postérieure à la date de début');
+            }
+            
+            // Confirmation si des données existent déjà
+            if (this.app.planningData.length > 0) {
+                const currentProfile = this.app.profileManager.getCurrentProfile();
+                const message = `Créer un nouveau planning vierge dans le profil "${currentProfile?.name}" ?\n\n` +
+                              `Cela remplacera les ${this.app.planningData.length} entrées actuelles.`;
+                
+                if (!confirm(message)) {
+                    return;
+                }
+            }
+            
+            // Générer le planning
+            const newPlanningData = this.generateBlankPlanning(data);
+            
+            // Remplacer les données actuelles
+            this.app.planningData = newPlanningData;
+            
+            // Sauvegarder et actualiser
+            this.app.profileManager.saveCurrentProfileData();
+            this.app.processDataWithValidation();
+            
+            // Fermer la modale et afficher confirmation
+            this.closeModal(modal);
+            this.app.showSaveIndicator(`✅ Planning vierge créé: ${newPlanningData.length} jours`);
+            
+        } catch (error) {
+            console.error('❌ Erreur création planning:', error);
+            alert(`Erreur: ${error.message}`);
+        }
+    }
+
+    /**
+     * Extrait les données du formulaire d'ajout de jour
+     */
+    extractAddDayData(modal) {
+        const dateInput = modal.querySelector('#addDayDate');
+        const dayTypeInputs = modal.querySelectorAll('input[name="dayType"]');
+        const locationInput = modal.querySelector('#addDayLocation');
+        const tasksInput = modal.querySelector('#addDayTasks');
+        const startTimeInput = modal.querySelector('#startTime');
+        const endTimeInput = modal.querySelector('#endTime');
+
+        const selectedType = Array.from(dayTypeInputs).find(input => input.checked)?.value;
+        const isWork = selectedType === 'work';
+
+        return {
+            date: dateInput.value,
+            isWork: isWork,
+            location: locationInput.value || (isWork ? 'Bureau' : 'Congé'),
+            tasks: tasksInput.value || (isWork ? 'Travail' : 'Jour de repos'),
+            startTime: startTimeInput.value || '08:00',
+            endTime: endTimeInput.value || '17:00'
+        };
+    }
+
+    /**
+     * Extrait les données du formulaire de planning vierge
+     */
+    extractBlankPlanningData(modal) {
+        const startDateInput = modal.querySelector('#blankStartDate');
+        const endDateInput = modal.querySelector('#blankEndDate');
+        const planningTypeInputs = modal.querySelectorAll('input[name="planningType"]');
+        const scheduleTypeInputs = modal.querySelectorAll('input[name="defaultSchedule"]');
+        const locationInput = modal.querySelector('#blankLocation');
+        const tasksInput = modal.querySelector('#blankTasks');
+        const customStartTime = modal.querySelector('#customStartTime');
+        const customEndTime = modal.querySelector('#customEndTime');
+        const dayCheckboxes = modal.querySelectorAll('input[name="includeDays"]:checked');
+
+        const selectedPlanningType = Array.from(planningTypeInputs).find(input => input.checked)?.value;
+        const selectedSchedule = Array.from(scheduleTypeInputs).find(input => input.checked)?.value;
+        const selectedDays = Array.from(dayCheckboxes).map(cb => parseInt(cb.value));
+
+        // Déterminer les horaires
+        let startTime = '08:00';
+        let endTime = '17:00';
+
+        switch (selectedSchedule) {
             case '8h-17h':
                 startTime = '08:00';
                 endTime = '17:00';
@@ -928,218 +1143,4 @@ class PlanningManager {
         });
         console.log('🧹 PlanningManager nettoyé');
     }
-}    case '8h-17h':
-                    scheduleText = '08:00-17:00';
-                    break;
-                case '9h-18h':
-                    scheduleText = '09:00-18:00';
-                    break;
-                case '8h-16h':
-                    scheduleText = '08:00-16:00';
-                    break;
-                case 'custom':
-                    if (customStartTime && customEndTime && customStartTime.value && customEndTime.value) {
-                        scheduleText = `${customStartTime.value}-${customEndTime.value}`;
-                    }
-                    break;
-            }
-            
-            previewDefaultSchedule.textContent = scheduleText || '-';
-        }
-
-        // Lieu par défaut
-        if (previewDefaultLocation) {
-            previewDefaultLocation.textContent = locationInput.value || '-';
-        }
-    }
-
-    /**
-     * Calcule le nombre de jours selon le type de planning
-     */
-    calculateDaysCount(startDate, endDate, planningType, dayCheckboxes) {
-        let count = 0;
-        const currentDate = new Date(startDate);
-        
-        while (currentDate <= endDate) {
-            const dayOfWeek = currentDate.getDay();
-            let includeDay = false;
-            
-            switch (planningType) {
-                case 'workdays':
-                    includeDay = dayOfWeek >= 1 && dayOfWeek <= 5; // Lun-Ven
-                    break;
-                case 'all':
-                    includeDay = true;
-                    break;
-                case 'custom':
-                    const selectedDays = Array.from(dayCheckboxes).map(cb => parseInt(cb.value));
-                    includeDay = selectedDays.includes(dayOfWeek);
-                    break;
-            }
-            
-            if (includeDay) {
-                count++;
-            }
-            
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-        
-        return count;
-    }
-
-    /**
-     * Exécute l'ajout d'un jour
-     */
-    executeAddDay(modal) {
-        try {
-            const data = this.extractAddDayData(modal);
-            
-            // Validation
-            if (!data.date) {
-                throw new Error('La date est obligatoire');
-            }
-            
-            // Vérifier si la date existe déjà
-            const existingEntry = this.app.planningData.find(entry => {
-                const entryDate = new Date(entry.dateObj);
-                const targetDate = new Date(data.date);
-                entryDate.setHours(0, 0, 0, 0);
-                targetDate.setHours(0, 0, 0, 0);
-                return entryDate.getTime() === targetDate.getTime();
-            });
-            
-            if (existingEntry) {
-                if (!confirm('Un jour existe déjà pour cette date. Voulez-vous le remplacer ?')) {
-                    return;
-                }
-                
-                // Supprimer l'entrée existante
-                this.app.planningData = this.app.planningData.filter(entry => {
-                    const entryDate = new Date(entry.dateObj);
-                    const targetDate = new Date(data.date);
-                    entryDate.setHours(0, 0, 0, 0);
-                    targetDate.setHours(0, 0, 0, 0);
-                    return entryDate.getTime() !== targetDate.getTime();
-                });
-            }
-            
-            // Créer la nouvelle entrée
-            const newEntry = {
-                date: data.date,
-                dateObj: new Date(data.date),
-                horaire: data.isWork ? `${data.startTime}-${data.endTime}` : 'Repos',
-                poste: data.location,
-                taches: data.tasks
-            };
-            
-            // Ajouter à la liste
-            this.app.planningData.push(newEntry);
-            
-            // Sauvegarder et actualiser
-            this.app.profileManager.saveCurrentProfileData();
-            this.app.processDataWithValidation();
-            
-            // Fermer la modale et afficher confirmation
-            this.closeModal(modal);
-            this.app.showSaveIndicator(`✅ Jour ajouté: ${new Date(data.date).toLocaleDateString('fr-FR')}`);
-            
-        } catch (error) {
-            console.error('❌ Erreur ajout jour:', error);
-            alert(`Erreur: ${error.message}`);
-        }
-    }
-
-    /**
-     * Exécute la création du planning vierge
-     */
-    executeCreateBlankPlanning(modal) {
-        try {
-            const data = this.extractBlankPlanningData(modal);
-            
-            // Validation
-            if (!data.startDate || !data.endDate) {
-                throw new Error('Les dates de début et fin sont obligatoires');
-            }
-            
-            if (new Date(data.endDate) < new Date(data.startDate)) {
-                throw new Error('La date de fin doit être postérieure à la date de début');
-            }
-            
-            // Confirmation si des données existent déjà
-            if (this.app.planningData.length > 0) {
-                const currentProfile = this.app.profileManager.getCurrentProfile();
-                const message = `Créer un nouveau planning vierge dans le profil "${currentProfile?.name}" ?\n\n` +
-                              `Cela remplacera les ${this.app.planningData.length} entrées actuelles.`;
-                
-                if (!confirm(message)) {
-                    return;
-                }
-            }
-            
-            // Générer le planning
-            const newPlanningData = this.generateBlankPlanning(data);
-            
-            // Remplacer les données actuelles
-            this.app.planningData = newPlanningData;
-            
-            // Sauvegarder et actualiser
-            this.app.profileManager.saveCurrentProfileData();
-            this.app.processDataWithValidation();
-            
-            // Fermer la modale et afficher confirmation
-            this.closeModal(modal);
-            this.app.showSaveIndicator(`✅ Planning vierge créé: ${newPlanningData.length} jours`);
-            
-        } catch (error) {
-            console.error('❌ Erreur création planning:', error);
-            alert(`Erreur: ${error.message}`);
-        }
-    }
-
-    /**
-     * Extrait les données du formulaire d'ajout de jour
-     */
-    extractAddDayData(modal) {
-        const dateInput = modal.querySelector('#addDayDate');
-        const dayTypeInputs = modal.querySelectorAll('input[name="dayType"]');
-        const locationInput = modal.querySelector('#addDayLocation');
-        const tasksInput = modal.querySelector('#addDayTasks');
-        const startTimeInput = modal.querySelector('#startTime');
-        const endTimeInput = modal.querySelector('#endTime');
-
-        const selectedType = Array.from(dayTypeInputs).find(input => input.checked)?.value;
-        const isWork = selectedType === 'work';
-
-        return {
-            date: dateInput.value,
-            isWork: isWork,
-            location: locationInput.value || (isWork ? 'Bureau' : 'Congé'),
-            tasks: tasksInput.value || (isWork ? 'Travail' : 'Jour de repos'),
-            startTime: startTimeInput.value || '08:00',
-            endTime: endTimeInput.value || '17:00'
-        };
-    }
-
-    /**
-     * Extrait les données du formulaire de planning vierge
-     */
-    extractBlankPlanningData(modal) {
-        const startDateInput = modal.querySelector('#blankStartDate');
-        const endDateInput = modal.querySelector('#blankEndDate');
-        const planningTypeInputs = modal.querySelectorAll('input[name="planningType"]');
-        const scheduleTypeInputs = modal.querySelectorAll('input[name="defaultSchedule"]');
-        const locationInput = modal.querySelector('#blankLocation');
-        const tasksInput = modal.querySelector('#blankTasks');
-        const customStartTime = modal.querySelector('#customStartTime');
-        const customEndTime = modal.querySelector('#customEndTime');
-        const dayCheckboxes = modal.querySelectorAll('input[name="includeDays"]:checked');
-
-        const selectedPlanningType = Array.from(planningTypeInputs).find(input => input.checked)?.value;
-        const selectedSchedule = Array.from(scheduleTypeInputs).find(input => input.checked)?.value;
-        const selectedDays = Array.from(dayCheckboxes).map(cb => parseInt(cb.value));
-
-        // Déterminer les horaires
-        let startTime = '08:00';
-        let endTime = '17:00';
-
-        switch (selectedSchedule) {
+}
