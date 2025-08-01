@@ -135,6 +135,7 @@ date,horaire,poste,taches
 
 ### Édition des horaires
 - **✏️ Modifier** : Éditer les horaires d'un jour en place
+- **🗑️ Supprimer** : Supprimer complètement un jour avec confirmation
 - **➕/➖** : Ajouter/supprimer des créneaux horaires
 - **☑️ Jour de repos** : Toggle avec mise à jour automatique
 - **💾 Enregistrer** / **❌ Annuler** : Sauvegarde ou restauration
@@ -261,6 +262,12 @@ Modifier `assets/css/variables.css` :
 - **Planning vierge** : Génération automatique de plannings sur périodes personnalisées
 - **Aperçus en temps réel** : Visualisation instantanée des modifications
 - **Templates d'horaires** : Horaires prédéfinis pour accélérer la saisie
+
+### ✏️ Édition avancée
+- **Modification en ligne** : Édition complète des horaires jour par jour
+- **Suppression de jour** : Suppression complète d'une journée avec confirmation sécurisée
+- **Navigation intelligente** : Préservation de la position lors des modifications
+- **Validation temps réel** : Contrôles de cohérence automatiques
 
 ### ✨ Système de profils
 - **Gestion complète** des profils multiples

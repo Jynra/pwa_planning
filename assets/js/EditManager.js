@@ -29,78 +29,109 @@ class EditManager {
 	 * Commence l'édition d'un jour
 	 */
 	startEdit(dayId) {
-		console.log(`✏️ Début édition du jour: ${dayId}`);
+	    console.log(`✏️ Début édition du jour: ${dayId}`);
 		
-		// Annuler les autres éditions en cours
-		this.cancelAllOtherEdits(dayId);
+	    // Annuler les autres éditions en cours
+	    this.cancelAllOtherEdits(dayId);
 		
-		// Sauvegarder l'état original pour pouvoir annuler
-		this.saveOriginalState(dayId);
+	    // Sauvegarder l'état original pour pouvoir annuler
+	    this.saveOriginalState(dayId);
 		
-		// Marquer ce jour comme en édition
-		this.editingStates.set(dayId, true);
+	    // Marquer ce jour comme en édition
+	    this.editingStates.set(dayId, true);
 		
-		// Rafraîchir l'affichage
-		this.app.refreshCurrentWeekDisplay();
+	    // Rafraîchir l'affichage
+	    this.refreshDisplay();
 		
-		// Scroll vers le jour en édition et focus
-		this.focusEditingDay(dayId);
+	    // Scroll vers le jour en édition et focus
+	    this.focusEditingDay(dayId);
 		
-		// Attacher les événements d'édition
-		this.attachEditEvents(dayId);
+	    // Attacher les événements d'édition
+	    this.attachEditEvents(dayId);
+	}
+
+	refreshDisplay() {
+	    // Utiliser la méthode de l'app selon la disponibilité
+	    if (typeof this.app.refreshCurrentWeekDisplayWithPosition === 'function') {
+	        this.app.refreshCurrentWeekDisplayWithPosition();
+	    } else if (typeof this.app.refreshCurrentWeekDisplay === 'function') {
+	        this.app.refreshCurrentWeekDisplay();
+	    } else {
+	        console.warn('⚠️ Aucune méthode de rafraîchissement disponible, utilisation de processDataWithValidation');
+	        this.app.processDataWithValidation();
+	    }
 	}
 
 	/**
 	 * Sauvegarde les modifications d'un jour
 	 */
 	async saveEdit(dayId) {
-		console.log(`💾 Sauvegarde du jour: ${dayId}`);
+	    console.log(`💾 Sauvegarde du jour: ${dayId}`);
 		
-		try {
-			// Extraire et valider les données
-			const editData = this.extractEditData(dayId);
-			if (!editData) {
-				throw new Error('Impossible d\'extraire les données d\'édition');
-			}
-			
-			const validationResult = this.validateEditData(editData);
-			if (!validationResult.isValid) {
-				this.showValidationErrors(dayId, validationResult.errors);
-				return false;
-			}
-			
-			// Marquer le bouton comme en cours de sauvegarde
-			this.setSavingState(dayId, true);
-			
-			// Appliquer les modifications aux données
-			await this.applyEditData(dayId, editData);
-			
-			// Sauvegarder en local
-			const saved = this.app.dataManager.saveData(this.app.planningData);
-			
-			// Sortir du mode édition
-			this.editingStates.set(dayId, false);
-			this.originalData.delete(dayId);
-			
-			// Rafraîchir l'affichage
-			this.app.refreshCurrentWeekDisplay();
-			
-			// Afficher le message de confirmation
-			const message = saved ? 
-				'💾 Modifications sauvegardées' : 
-				'⚠️ Modifications appliquées (sauvegarde échouée)';
-			this.app.showSaveIndicator(message);
-			
-			console.log('✅ Sauvegarde réussie');
-			return true;
-			
-		} catch (error) {
-			console.error('❌ Erreur lors de la sauvegarde:', error);
-			this.app.showError(`Erreur: ${error.message}`);
-			return false;
-		} finally {
-			this.setSavingState(dayId, false);
-		}
+	    try {
+	        // Sauvegarder l'index de la semaine courante AVANT modification
+	        const currentWeekIndex = this.app.weekManager.getCurrentWeekIndex();
+	        const currentWeek = this.app.weekManager.getCurrentWeek();
+	        console.log(`📍 Semaine courante avant modification: ${currentWeekIndex + 1}`);
+		
+	        // Extraire et valider les données
+	        const editData = this.extractEditData(dayId);
+	        if (!editData) {
+	            throw new Error('Impossible d\'extraire les données d\'édition');
+	        }
+		
+	        const validationResult = this.validateEditData(editData);
+	        if (!validationResult.isValid) {
+	            this.showValidationErrors(dayId, validationResult.errors);
+	            return false;
+	        }
+		
+	        // Marquer le bouton comme en cours de sauvegarde
+	        this.setSavingState(dayId, true);
+		
+	        // Appliquer les modifications aux données
+	        await this.applyEditData(dayId, editData);
+		
+	        // Sauvegarder en local
+	        const saved = this.app.dataManager.saveData(this.app.planningData);
+		
+	        // Sortir du mode édition
+	        this.editingStates.set(dayId, false);
+	        this.originalData.delete(dayId);
+		
+	        // CORRECTION : Rafraîchir en préservant strictement la position
+	        console.log(`🔄 Rafraîchissement après modification, retour à semaine ${currentWeekIndex + 1}`);
+		
+	        // Vérifier que la méthode existe
+	        if (typeof this.app.refreshCurrentWeekDisplayWithPosition === 'function') {
+	            this.app.refreshCurrentWeekDisplayWithPosition(currentWeekIndex);
+	        } else {
+	            console.warn('⚠️ refreshCurrentWeekDisplayWithPosition non disponible');
+	            // Fallback : réorganiser et essayer de revenir à la bonne semaine
+	            this.app.weekManager.organizeWeeks(this.app.planningData);
+	            const weeks = this.app.weekManager.getWeeks();
+	            if (currentWeekIndex >= 0 && currentWeekIndex < weeks.length) {
+	                this.app.weekManager.currentWeekIndex = currentWeekIndex;
+	            }
+	            this.app.displayWeek();
+	        }
+		
+	        // Afficher le message de confirmation
+	        const message = saved ? 
+	            '💾 Modifications sauvegardées' : 
+	            '⚠️ Modifications appliquées (sauvegarde échouée)';
+	        this.app.showSaveIndicator(message);
+		
+	        console.log('✅ Sauvegarde réussie');
+	        return true;
+		
+	    } catch (error) {
+	        console.error('❌ Erreur lors de la sauvegarde:', error);
+	        this.app.showError(`Erreur: ${error.message}`);
+	        return false;
+	    } finally {
+	        this.setSavingState(dayId, false);
+	    }
 	}
 
 	/**
@@ -214,19 +245,21 @@ class EditManager {
 	 */
 	deleteDay(dayId) {
 	    try {
+	        // Sauvegarder l'index de la semaine courante AVANT suppression
+	        const currentWeekIndex = this.app.weekManager.getCurrentWeekIndex();
+	        console.log(`📍 Semaine courante avant suppression: ${currentWeekIndex + 1}`);
+		
 	        // Extraire la date du dayId
 	        const dateStr = dayId.replace('day-', '');
 	        const targetDate = new Date(dateStr);
 	        targetDate.setHours(0, 0, 0, 0);
 		
-	        // Formater la date pour l'affichage
 	        const formattedDate = targetDate.toLocaleDateString('fr-FR', { 
 	            weekday: 'long', 
 	            day: 'numeric', 
 	            month: 'long' 
 	        });
 		
-	        // Demander confirmation
 	        const confirmMessage = `Êtes-vous sûr de vouloir supprimer le jour "${formattedDate}" ?\n\n` +
 	                              `Cette action supprimera définitivement toutes les données de cette journée.`;
 		
@@ -263,8 +296,16 @@ class EditManager {
 	        // Sauvegarder dans le profil actuel
 	        this.app.profileManager.saveCurrentProfileData();
 		
-	        // Réorganiser et rafficher
-	        this.app.processDataWithValidation();
+	        // CORRECTION : Vérifier s'il reste des données
+	        if (this.app.planningData.length === 0) {
+	            // Plus de données, afficher l'écran vide
+	            console.log('📭 Plus de données après suppression');
+	            this.app.displayManager.showNoDataWithHelp();
+	        } else {
+	            // Il reste des données, réorganiser et essayer de préserver la position
+	            console.log(`🔄 Réorganisation après suppression, retour à semaine ${currentWeekIndex + 1}`);
+	            this.app.refreshCurrentWeekDisplayWithPosition(currentWeekIndex);
+	        }
 		
 	        // Message de confirmation
 	        this.app.displayManager.showSuccess(
@@ -277,28 +318,6 @@ class EditManager {
 	        console.error('❌ Erreur lors de la suppression du jour:', error);
 	        this.app.displayManager.showError(`Erreur: ${error.message}`);
 	    }
-	}
-
-	/**
-	 * Vérifie si un jour peut être supprimé (optionnel - pour des validations futures)
-	 */
-	canDeleteDay(dayId) {
-	    const dateStr = dayId.replace('day-', '');
-	    const targetDate = new Date(dateStr);
-	    targetDate.setHours(0, 0, 0, 0);
-	
-	    // Compter les entrées pour ce jour
-	    const entriesCount = this.app.planningData.filter(entry => {
-	        const entryDate = new Date(entry.dateObj);
-	        entryDate.setHours(0, 0, 0, 0);
-	        return entryDate.getTime() === targetDate.getTime();
-	    }).length;
-	
-	    return {
-	        canDelete: entriesCount > 0,
-	        entriesCount: entriesCount,
-	        reason: entriesCount === 0 ? 'Aucune donnée pour ce jour' : null
-	    };
 	}
 
 	/**
@@ -881,7 +900,7 @@ class EditManager {
 	    });
 	    return uniqueDates.size;
 	}
-	
+
 	/**
 	 * Compte le nombre de jours éditables (avec des données)
 	 */
