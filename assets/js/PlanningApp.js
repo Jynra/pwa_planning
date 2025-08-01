@@ -647,55 +647,82 @@ class PlanningApp {
 	 * Rafraîchit l'affichage de la semaine courante (pour EditManager)
 	 */
 	refreshCurrentWeekDisplay() {
-		console.log('🔄 Rafraîchissement de l\'affichage...');
-		
-		// Vérifier qu'on a des données
-		if (!this.planningData || this.planningData.length === 0) {
-			console.warn('⚠️ Pas de données à afficher');
-			this.displayManager.showNoDataWithHelp();
-			return;
-		}
+	    // Déléguer à la nouvelle méthode avec préservation de position
+	    this.refreshCurrentWeekDisplayWithPosition();
+	}
 
-		try {
-			// Sauvegarder l'index de la semaine actuelle
-			const currentWeekIndex = this.weekManager.getCurrentWeekIndex();
+	/**
+	 * NOUVELLE MÉTHODE : Rafraîchit l'affichage en préservant la position de la semaine
+	 */
+	refreshCurrentWeekDisplayWithPosition(preferredWeekIndex = null) {
+	    console.log('🔄 Rafraîchissement avec préservation de position...');
+	
+	    // Vérifier qu'on a des données
+	    if (!this.planningData || this.planningData.length === 0) {
+	        console.warn('⚠️ Pas de données à afficher');
+	        this.displayManager.showNoDataWithHelp();
+	        return;
+	    }
+
+	    try {
+	        // Sauvegarder l'index préféré ou l'index actuel
+	        const targetWeekIndex = preferredWeekIndex !== null ? 
+	            preferredWeekIndex : 
+	            this.weekManager.getCurrentWeekIndex();
+		
+	        console.log(`📍 Index de semaine cible: ${targetWeekIndex + 1}`);
+		
+	        // Réorganiser les semaines avec les nouvelles données
+	        this.weekManager.organizeWeeks(this.planningData);
+		
+	        // Vérifier qu'on a encore des semaines
+	        if (!this.weekManager.hasWeeks()) {
+	            console.warn('⚠️ Aucune semaine après réorganisation');
+	            this.displayManager.showNoDataWithHelp();
+	            return;
+	        }
+		
+	        const weeks = this.weekManager.getWeeks();
+	        console.log(`📊 ${weeks.length} semaines disponibles après réorganisation`);
+		
+	        // Essayer de restaurer l'index de semaine ciblé
+	        if (targetWeekIndex >= 0 && targetWeekIndex < weeks.length) {
+	            // L'index cible est toujours valide
+	            this.weekManager.currentWeekIndex = targetWeekIndex;
+	            console.log(`✅ Position restaurée: semaine ${targetWeekIndex + 1}/${weeks.length}`);
+	        } else {
+	            // L'index n'est plus valide, essayer de trouver une semaine proche
+	            console.log(`⚠️ Index ${targetWeekIndex} invalide, recherche d'une semaine proche...`);
 			
-			// Réorganiser les semaines avec les nouvelles données
-			this.weekManager.organizeWeeks(this.planningData);
-			
-			// Vérifier qu'on a encore des semaines
-			if (!this.weekManager.hasWeeks()) {
-				console.warn('⚠️ Aucune semaine après réorganisation');
-				this.displayManager.showNoDataWithHelp();
-				return;
-			}
-			
-			// Restaurer l'index de semaine (ou ajuster si nécessaire)
-			const weeks = this.weekManager.getWeeks();
-			if (currentWeekIndex >= 0 && currentWeekIndex < weeks.length) {
-				this.weekManager.currentWeekIndex = currentWeekIndex;
-			} else {
-				// Si l'index n'est plus valide, trouver la semaine courante
-				this.weekManager.findCurrentWeek();
-			}
-			
-			// Réafficher la semaine
-			this.displayWeek();
-			
-			// Sauvegarder automatiquement dans le profil actuel
-			this.profileManager.saveCurrentProfileData();
-			
-			console.log(`✅ Affichage rafraîchi: semaine ${this.weekManager.getCurrentWeekIndex() + 1}/${weeks.length}`);
-			
-		} catch (error) {
-			console.error('❌ Erreur lors du rafraîchissement:', error);
-			this.displayManager.showError('Erreur lors du rafraîchissement de l\'affichage');
-			
-			// En cas d'erreur, recharger complètement
-			setTimeout(() => {
-				this.processDataWithValidation();
-			}, 500);
-		}
+	            if (targetWeekIndex >= weeks.length) {
+	                // On était sur une semaine trop avancée, aller à la dernière
+	                this.weekManager.currentWeekIndex = weeks.length - 1;
+	                console.log(`📍 Repositionné sur la dernière semaine: ${weeks.length}`);
+	            } else {
+	                // Trouver la semaine courante ou la première disponible
+	                this.weekManager.findCurrentWeek();
+	                console.log(`📍 Repositionné sur la semaine courante: ${this.weekManager.getCurrentWeekIndex() + 1}`);
+	            }
+	        }
+		
+	        // Réafficher la semaine
+	        this.displayWeek();
+		
+	        // Sauvegarder automatiquement dans le profil actuel
+	        this.profileManager.saveCurrentProfileData();
+		
+	        const finalIndex = this.weekManager.getCurrentWeekIndex();
+	        console.log(`✅ Affichage rafraîchi: semaine ${finalIndex + 1}/${weeks.length}`);
+		
+	    } catch (error) {
+	        console.error('❌ Erreur lors du rafraîchissement positionné:', error);
+	        this.displayManager.showError('Erreur lors du rafraîchissement de l\'affichage');
+		
+	        // En cas d'erreur, recharger complètement avec méthode standard
+	        setTimeout(() => {
+	            this.processDataWithValidation();
+	        }, 500);
+	    }
 	}
 
 	/**

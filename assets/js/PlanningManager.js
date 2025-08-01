@@ -539,110 +539,170 @@ class PlanningManager {
      * Exécute l'ajout d'un jour
      */
     executeAddDay(modal) {
-        try {
-            const data = this.extractAddDayData(modal);
-            
-            // Validation
-            if (!data.date) {
-                throw new Error('La date est obligatoire');
-            }
-            
-            // Vérifier si la date existe déjà
-            const existingEntry = this.app.planningData.find(entry => {
-                const entryDate = new Date(entry.dateObj);
-                const targetDate = new Date(data.date);
-                entryDate.setHours(0, 0, 0, 0);
-                targetDate.setHours(0, 0, 0, 0);
-                return entryDate.getTime() === targetDate.getTime();
-            });
-            
-            if (existingEntry) {
-                if (!confirm('Un jour existe déjà pour cette date. Voulez-vous le remplacer ?')) {
-                    return;
-                }
-                
-                // Supprimer l'entrée existante
-                this.app.planningData = this.app.planningData.filter(entry => {
-                    const entryDate = new Date(entry.dateObj);
-                    const targetDate = new Date(data.date);
-                    entryDate.setHours(0, 0, 0, 0);
-                    targetDate.setHours(0, 0, 0, 0);
-                    return entryDate.getTime() !== targetDate.getTime();
-                });
-            }
-            
-            // Créer la nouvelle entrée
-            const newEntry = {
-                date: data.date,
-                dateObj: new Date(data.date),
-                horaire: data.isWork ? `${data.startTime}-${data.endTime}` : 'Repos',
-                poste: data.location,
-                taches: data.tasks
-            };
-            
-            // Ajouter à la liste
-            this.app.planningData.push(newEntry);
-            
-            // Sauvegarder et actualiser
-            this.app.profileManager.saveCurrentProfileData();
-            this.app.processDataWithValidation();
-            
-            // Fermer la modale et afficher confirmation
-            this.closeModal(modal);
-            this.app.showSaveIndicator(`✅ Jour ajouté: ${new Date(data.date).toLocaleDateString('fr-FR')}`);
-            
-        } catch (error) {
-            console.error('❌ Erreur ajout jour:', error);
-            alert(`Erreur: ${error.message}`);
-        }
-    }
+	    try {
+	        const data = this.extractAddDayData(modal);
+		
+	        // Validation
+	        if (!data.date) {
+	            throw new Error('La date est obligatoire');
+	        }
+		
+	        // CORRECTION : Vérifier si le profil était vraiment vide AVANT toute modification
+	        const wasProfileEmpty = this.app.planningData.length === 0;
+	        console.log(`📊 Profil était vide: ${wasProfileEmpty}`);
+		
+	        // Sauvegarder l'index de semaine AVANT modification (seulement si profil pas vide)
+	        let currentWeekIndex = 0;
+	        if (!wasProfileEmpty) {
+	            currentWeekIndex = this.app.weekManager.getCurrentWeekIndex();
+	            console.log(`📍 Index semaine avant ajout: ${currentWeekIndex + 1}`);
+	        }
+		
+	        // Vérifier si la date existe déjà
+	        const existingEntry = this.app.planningData.find(entry => {
+	            const entryDate = new Date(entry.dateObj);
+	            const targetDate = new Date(data.date);
+	            entryDate.setHours(0, 0, 0, 0);
+	            targetDate.setHours(0, 0, 0, 0);
+	            return entryDate.getTime() === targetDate.getTime();
+	        });
+		
+	        if (existingEntry) {
+	            if (!confirm('Un jour existe déjà pour cette date. Voulez-vous le remplacer ?')) {
+	                return;
+	            }
+			
+	            // Supprimer l'entrée existante
+	            this.app.planningData = this.app.planningData.filter(entry => {
+	                const entryDate = new Date(entry.dateObj);
+	                const targetDate = new Date(data.date);
+	                entryDate.setHours(0, 0, 0, 0);
+	                targetDate.setHours(0, 0, 0, 0);
+	                return entryDate.getTime() !== targetDate.getTime();
+	            });
+	        }
+		
+	        // Créer la nouvelle entrée
+	        const newEntry = {
+	            date: data.date,
+	            dateObj: new Date(data.date),
+	            horaire: data.isWork ? `${data.startTime}-${data.endTime}` : 'Repos',
+	            poste: data.location,
+	            taches: data.tasks
+	        };
+		
+	        // Ajouter à la liste
+	        this.app.planningData.push(newEntry);
+		
+	        // Sauvegarder
+	        this.app.profileManager.saveCurrentProfileData();
+		
+	        // CORRECTION : Logique de rafraîchissement
+	        if (wasProfileEmpty) {
+	            // Le profil était vide, initialisation complète nécessaire
+	            console.log('🆕 Premier jour du profil, initialisation complète');
+	            this.app.processDataWithValidation();
+	        } else {
+	            // Le profil avait déjà des données, préserver la position
+	            console.log('➕ Ajout à un profil existant, préservation position');
+			
+	            // Calculer dans quelle semaine sera le nouveau jour
+	            const newDate = new Date(data.date);
+	            const newWeekStart = this.app.weekManager.getWeekStart(newDate);
+			
+	            // Vérifier si le nouveau jour est dans la semaine courante affichée
+	            const currentWeek = this.app.weekManager.getCurrentWeek();
+	            let shouldStayOnCurrentWeek = false;
+			
+	            if (currentWeek) {
+	                const currentWeekStart = currentWeek.weekStart;
+	                shouldStayOnCurrentWeek = (newWeekStart.getTime() === currentWeekStart.getTime());
+	                console.log(`🔍 Nouveau jour dans semaine courante: ${shouldStayOnCurrentWeek}`);
+	            }
+			
+	            if (shouldStayOnCurrentWeek) {
+	                // Le nouveau jour est dans la semaine affichée, rester sur cette semaine
+	                this.app.refreshCurrentWeekDisplayWithPosition(currentWeekIndex);
+	            } else {
+	                // Le nouveau jour est dans une autre semaine, aller à cette semaine
+	                this.app.weekManager.organizeWeeks(this.app.planningData);
+				
+	                // Trouver l'index de la semaine du nouveau jour
+	                const weeks = this.app.weekManager.getWeeks();
+	                const targetWeekIndex = weeks.findIndex(week => {
+	                    return week.weekStart.getTime() === newWeekStart.getTime();
+	                });
+				
+	                if (targetWeekIndex !== -1) {
+	                    console.log(`📍 Aller à la semaine du nouveau jour: ${targetWeekIndex + 1}`);
+	                    this.app.refreshCurrentWeekDisplayWithPosition(targetWeekIndex);
+	                } else {
+	                    console.log('⚠️ Semaine du nouveau jour non trouvée, rafraîchissement standard');
+	                    this.app.refreshCurrentWeekDisplayWithPosition(currentWeekIndex);
+	                }
+	            }
+	        }
+		
+	        // Fermer la modale et afficher confirmation
+	        this.closeModal(modal);
+	        this.app.showSaveIndicator(`✅ Jour ajouté: ${new Date(data.date).toLocaleDateString('fr-FR')}`);
+		
+	    } catch (error) {
+	        console.error('❌ Erreur ajout jour:', error);
+	        alert(`Erreur: ${error.message}`);
+	    }
+	}
 
     /**
      * Exécute la création du planning vierge
      */
     executeCreateBlankPlanning(modal) {
-        try {
-            const data = this.extractBlankPlanningData(modal);
-            
-            // Validation
-            if (!data.startDate || !data.endDate) {
-                throw new Error('Les dates de début et fin sont obligatoires');
-            }
-            
-            if (new Date(data.endDate) < new Date(data.startDate)) {
-                throw new Error('La date de fin doit être postérieure à la date de début');
-            }
-            
-            // Confirmation si des données existent déjà
-            if (this.app.planningData.length > 0) {
-                const currentProfile = this.app.profileManager.getCurrentProfile();
-                const message = `Créer un nouveau planning vierge dans le profil "${currentProfile?.name}" ?\n\n` +
-                              `Cela remplacera les ${this.app.planningData.length} entrées actuelles.`;
-                
-                if (!confirm(message)) {
-                    return;
-                }
-            }
-            
-            // Générer le planning
-            const newPlanningData = this.generateBlankPlanning(data);
-            
-            // Remplacer les données actuelles
-            this.app.planningData = newPlanningData;
-            
-            // Sauvegarder et actualiser
-            this.app.profileManager.saveCurrentProfileData();
-            this.app.processDataWithValidation();
-            
-            // Fermer la modale et afficher confirmation
-            this.closeModal(modal);
-            this.app.showSaveIndicator(`✅ Planning vierge créé: ${newPlanningData.length} jours`);
-            
-        } catch (error) {
-            console.error('❌ Erreur création planning:', error);
-            alert(`Erreur: ${error.message}`);
-        }
-    }
+	    try {
+	        const data = this.extractBlankPlanningData(modal);
+		
+	        // Validation
+	        if (!data.startDate || !data.endDate) {
+	            throw new Error('Les dates de début et fin sont obligatoires');
+	        }
+		
+	        if (new Date(data.endDate) < new Date(data.startDate)) {
+	            throw new Error('La date de fin doit être postérieure à la date de début');
+	        }
+		
+	        // Confirmation si des données existent déjà
+	        if (this.app.planningData.length > 0) {
+	            const currentProfile = this.app.profileManager.getCurrentProfile();
+	            const message = `Créer un nouveau planning vierge dans le profil "${currentProfile?.name}" ?\n\n` +
+	                          `Cela remplacera les ${this.app.planningData.length} entrées actuelles.`;
+			
+	            if (!confirm(message)) {
+	                return;
+	            }
+	        }
+		
+	        // Générer le planning
+	        const newPlanningData = this.generateBlankPlanning(data);
+		
+	        // Remplacer les données actuelles
+	        this.app.planningData = newPlanningData;
+		
+	        // Sauvegarder et actualiser
+	        this.app.profileManager.saveCurrentProfileData();
+		
+	        // CORRECTION : Toujours utiliser processDataWithValidation pour un planning vierge
+	        // car c'est un remplacement complet
+	        console.log('📋 Planning vierge créé, initialisation complète');
+	        this.app.processDataWithValidation();
+		
+	        // Fermer la modale et afficher confirmation
+	        this.closeModal(modal);
+	        this.app.showSaveIndicator(`✅ Planning vierge créé: ${newPlanningData.length} jours`);
+		
+	    } catch (error) {
+	        console.error('❌ Erreur création planning:', error);
+	        alert(`Erreur: ${error.message}`);
+	    }
+	}
 
     /**
      * Extrait les données du formulaire d'ajout de jour
