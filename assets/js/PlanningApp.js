@@ -1,6 +1,6 @@
 /**
  * Application principale de Planning de Travail - PWA
- * Version avec système de profils intégré
+ * Version avec système de profils intégré et nouvelles fonctionnalités
  */
 class PlanningApp {
 	constructor() {
@@ -18,8 +18,11 @@ class PlanningApp {
 		this.editManager = new EditManager(this);
 		this.editRenderer = new EditRenderer(this.editManager);
 		
-		// NOUVEAU : Gestionnaire de profils
+		// Gestionnaire de profils
 		this.profileManager = new ProfileManager(this);
+		
+		// NOUVEAU : Gestionnaire de planning
+		this.planningManager = new PlanningManager(this);
 		
 		this.initializeElements();
 		this.bindEvents();
@@ -29,11 +32,6 @@ class PlanningApp {
 		// Initialisation avec chargement automatique
 		this.initializeApp();
 	}
-
-	/**
-	 * CORRECTION : Ordre d'initialisation dans PlanningApp.js
-	 * REMPLACEZ ces méthodes dans votre PlanningApp.js
-	 */
 
 	/**
 	 * Initialisation complète de l'application - VERSION CORRIGÉE
@@ -188,11 +186,15 @@ class PlanningApp {
 		this.themeToggleMenu = document.getElementById('themeToggleMenu');
 		this.resetBtnMenu = document.getElementById('resetBtnMenu');
 		
-		// NOUVEAU : Éléments pour les profils
+		// Éléments pour les profils
 		this.profilesMenuItem = document.getElementById('profilesMenuItem');
 		this.profilesModal = document.getElementById('profilesModal');
 		this.profilesClose = document.getElementById('profilesClose');
 		this.currentProfileDisplay = document.getElementById('currentProfileDisplay');
+		
+		// NOUVEAU : Éléments pour les nouvelles fonctionnalités
+		this.addDayMenuItem = document.getElementById('addDayMenuItem');
+		this.createBlankMenuItem = document.getElementById('createBlankMenuItem');
 		
 		this.weekNavigation = document.getElementById('weekNavigation');
 		this.weekDates = document.getElementById('weekDates');
@@ -225,7 +227,7 @@ class PlanningApp {
 		// Événements du menu options
 		this.bindOptionsMenuEvents();
 
-		// NOUVEAU : Événements des profils
+		// Événements des profils
 		this.bindProfilesEvents();
 
 		// Déléguer la gestion des thèmes au ThemeManager
@@ -240,7 +242,7 @@ class PlanningApp {
 	}
 
 	/**
-	 * NOUVEAU : Lie les événements du système de profils
+	 * Lie les événements du système de profils
 	 */
 	bindProfilesEvents() {
 		// Ouverture de la modale des profils
@@ -280,7 +282,7 @@ class PlanningApp {
 	}
 
 	/**
-	 * NOUVEAU : Ouvre la modale des profils
+	 * Ouvre la modale des profils
 	 */
 	openProfilesModal() {
 		this.isProfilesModalOpen = true;
@@ -291,7 +293,7 @@ class PlanningApp {
 	}
 
 	/**
-	 * NOUVEAU : Ferme la modale des profils
+	 * Ferme la modale des profils
 	 */
 	closeProfilesModal() {
 		this.isProfilesModalOpen = false;
@@ -302,7 +304,7 @@ class PlanningApp {
 	}
 
 	/**
-	 * MODIFIÉ : Gestion du chargement de fichier avec sauvegarde dans le profil actuel
+	 * Gestion du chargement de fichier avec sauvegarde dans le profil actuel
 	 */
 	async handleFileLoad(event) {
 		const file = event.target.files[0];
@@ -331,7 +333,7 @@ class PlanningApp {
 			// Mettre à jour les données de l'application
 			this.planningData = parsedData;
 		
-			// CORRECTION : Vérifier que profileManager existe et a un profil actuel
+			// Vérifier que profileManager existe et a un profil actuel
 			let saved = false;
 			let currentProfile = null;
 		
@@ -399,6 +401,36 @@ class PlanningApp {
 			this.closeOptionsMenu();
 			this.resetPlanningWithConfirm();
 		});
+
+		// NOUVEAU : Ajouter un jour depuis le menu
+		if (this.addDayMenuItem) {
+			this.addDayMenuItem.addEventListener('click', () => {
+				this.closeOptionsMenu();
+				this.showAddDayDialog();
+			});
+		}
+
+		// NOUVEAU : Créer un planning vierge depuis le menu
+		if (this.createBlankMenuItem) {
+			this.createBlankMenuItem.addEventListener('click', () => {
+				this.closeOptionsMenu();
+				this.showCreateBlankPlanningDialog();
+			});
+		}
+	}
+
+	/**
+	 * NOUVEAU : Affiche le dialogue d'ajout de jour
+	 */
+	showAddDayDialog() {
+		this.planningManager.showAddDayDialog();
+	}
+
+	/**
+	 * NOUVEAU : Affiche le dialogue de création de planning vierge
+	 */
+	showCreateBlankPlanningDialog() {
+		this.planningManager.showCreateBlankPlanningDialog();
 	}
 
 	/**
@@ -468,8 +500,7 @@ class PlanningApp {
 	}
 
 	/**
-	 * CORRIGÉ : Reset avec confirmation et gestion des profils
-	 * REMPLACEZ cette méthode dans votre PlanningApp.js
+	 * Reset avec confirmation et gestion des profils
 	 */
 	resetPlanningWithConfirm() {
 		try {
@@ -503,7 +534,7 @@ class PlanningApp {
 	}
 
 	/**
-	 * NOUVEAU : Reset du profil actuel uniquement
+	 * Reset du profil actuel uniquement
 	 */
 	resetCurrentProfile() {
 		try {
@@ -540,7 +571,7 @@ class PlanningApp {
 	}
 
 	/**
-	 * NOUVEAU : Reset standard (sans profils)
+	 * Reset standard (sans profils)
 	 */
 	resetPlanningStandard() {
 		try {
@@ -651,7 +682,7 @@ class PlanningApp {
 			// Réafficher la semaine
 			this.displayWeek();
 			
-			// NOUVEAU : Sauvegarder automatiquement dans le profil actuel
+			// Sauvegarder automatiquement dans le profil actuel
 			this.profileManager.saveCurrentProfileData();
 			
 			console.log(`✅ Affichage rafraîchi: semaine ${this.weekManager.getCurrentWeekIndex() + 1}/${weeks.length}`);
@@ -679,7 +710,7 @@ class PlanningApp {
 	}
 
 	/**
-	 * NOUVEAU : Méthodes pour l'intégration avec ProfileManager
+	 * Méthodes pour l'intégration avec ProfileManager
 	 */
 	
 	/**
@@ -721,7 +752,7 @@ class PlanningApp {
 	}
 
 	/**
-	 * NOUVEAU : Gestion de la fermeture de l'application
+	 * Gestion de la fermeture de l'application
 	 */
 	beforeUnload() {
 		// Sauvegarder les données du profil actuel avant fermeture
@@ -752,12 +783,15 @@ class PlanningApp {
 		if (this.displayManager) {
 			this.displayManager.cleanup();
 		}
+		if (this.planningManager) {
+			this.planningManager.cleanup();
+		}
 		
 		console.log('🧹 Application nettoyée');
 	}
 
 	/**
-	 * NOUVEAU : Obtient le statut complet de l'application
+	 * Obtient le statut complet de l'application
 	 */
 	getStatus() {
 		return {
@@ -771,7 +805,7 @@ class PlanningApp {
 	}
 
 	/**
-	 * NOUVEAU : Méthode utilitaire pour déboguer
+	 * Méthode utilitaire pour déboguer
 	 */
 	debug() {
 		const status = this.getStatus();

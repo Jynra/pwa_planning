@@ -1,8 +1,8 @@
 # 📅 Planning de Travail - PWA
 
-Une application web progressive (PWA) moderne et intuitive pour visualiser et gérer vos plannings de travail semaine par semaine. Interface mobile-first avec support complet des horaires multiples, horaires de nuit, **édition en ligne**, et **gestion de profils multiples**.
+Une application web progressive (PWA) moderne et intuitive pour visualiser et gérer vos plannings de travail semaine par semaine. Interface mobile-first avec support complet des horaires multiples, horaires de nuit, **édition en ligne**, **gestion de profils multiples**, et **création de plannings**.
 
-![Planning de Travail](https://img.shields.io/badge/PWA-Ready-brightgreen) ![Version](https://img.shields.io/badge/version-2.1.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Docker](https://img.shields.io/badge/Docker-Supported-blue)
+![Planning de Travail](https://img.shields.io/badge/PWA-Ready-brightgreen) ![Version](https://img.shields.io/badge/version-2.2.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Docker](https://img.shields.io/badge/Docker-Supported-blue)
 
 ## ✨ Fonctionnalités principales
 
@@ -10,6 +10,8 @@ Une application web progressive (PWA) moderne et intuitive pour visualiser et g�
 - **📊 Import CSV intelligent** avec détection automatique des formats
 - **✏️ Édition en ligne** des horaires jour par jour avec validation temps réel
 - **👤 Gestion de profils** - Créez et gérez plusieurs plannings séparés
+- **📅 Ajouter un jour** - Ajout rapide de journées spécifiques
+- **📋 Planning vierge** - Génération automatique de plannings sur période
 - **⏰ Gestion avancée** des horaires multiples et de nuit
 - **🌙 Mode sombre** adaptatif avec détection système
 - **💾 Fonctionnement hors ligne** avec sauvegarde locale automatique par profil
@@ -74,6 +76,25 @@ L'application sera accessible sur **http://localhost:4047**
 - **Sauvegarde automatique** : Toutes les 30 secondes + à chaque changement
 - **Persistance** : Le profil actif est mémorisé entre les sessions
 
+## 📅 Nouvelles fonctionnalités de création
+
+### Ajouter un jour spécifique
+- **Accès** : Menu ⚙️ → "Ajouter un jour" ou raccourci `Ctrl+D`
+- **Formulaire intuitif** avec aperçu en temps réel
+- **Types de jour** : Travail ou repos
+- **Validation** : Détection des conflits de dates existantes
+- **Personnalisation** : Horaires, lieu et tâches configurables
+
+### Créer un planning vierge
+- **Accès** : Menu ⚙️ → "Planning vierge" ou raccourci `Ctrl+N`
+- **Période personnalisée** : Définir début et fin
+- **Types de planning** :
+  - **Jours ouvrables** : Lundi à vendredi uniquement
+  - **Tous les jours** : Lundi à dimanche
+  - **Personnalisé** : Sélection libre des jours de la semaine
+- **Horaires par défaut** : Templates prédéfinis ou horaires personnalisés
+- **Aperçu dynamique** : Visualisation du nombre de jours générés
+
 ## 📊 Format CSV supporté
 
 ### Structure basique
@@ -107,6 +128,8 @@ date,horaire,poste,taches
 
 ### Menu Options ⚙️
 - **👤 Profils** : Gérer les profils multiples
+- **📅 Ajouter un jour** : Créer une journée spécifique
+- **📋 Planning vierge** : Générer un planning sur période
 - **🌙 Mode sombre** : Basculer entre thème clair/sombre
 - **🔄 Réinitialiser** : Effacer le planning du profil actuel
 
@@ -128,7 +151,8 @@ Structure modulaire pour une maintenance facilitée :
 ```
 assets/js/
 ├── PlanningApp.js      # Application principale
-├── ProfileManager.js   # Gestion des profils multiples (NOUVEAU)
+├── ProfileManager.js   # Gestion des profils multiples
+├── PlanningManager.js  # Nouvelles fonctionnalités (NOUVEAU)
 ├── DataManager.js      # Gestion CSV et sauvegarde locale
 ├── WeekManager.js      # Navigation par semaines
 ├── EditManager.js      # Édition des horaires
@@ -142,7 +166,7 @@ assets/css/
 ├── variables.css       # Variables CSS et thèmes
 ├── layout.css          # Structure et mise en page
 ├── components.css      # Composants réutilisables
-├── profiles.css        # Styles système de profils (NOUVEAU)
+├── profiles.css        # Styles système de profils
 ├── edit.css           # Interface d'édition
 └── responsive.css      # Adaptations mobiles
 ```
@@ -171,6 +195,8 @@ Modifier `assets/css/variables.css` :
 
 - **Ctrl + S** : Sauvegarder le profil actuel
 - **Ctrl + P** : Ouvrir la gestion des profils
+- **Ctrl + D** : Ajouter un jour spécifique (NOUVEAU)
+- **Ctrl + N** : Créer un planning vierge (NOUVEAU)
 - **Échap** : Fermer les modales/annuler l'édition
 - **F5** : Actualiser avec vérification des modifications non sauvegardées
 
@@ -222,11 +248,19 @@ Modifier `assets/css/variables.css` :
 - `getProfiles()` : Lister tous les profils
 - `getCurrentProfile()` : Profil actuellement actif
 - `switchProfile(id)` : Basculer vers un profil spécifique
+- `addDay()` : Ouvrir le dialogue d'ajout de jour (NOUVEAU)
+- `createBlankPlanning()` : Ouvrir le dialogue de planning vierge (NOUVEAU)
 
 ### Raccourci debug
 - **Ctrl + Alt + D** : Afficher les informations de debug
 
-## 🆕 Nouveautés v2.1.0
+## 🆕 Nouveautés v2.2.0
+
+### 📅 Fonctionnalités de création
+- **Ajouter un jour** : Interface moderne pour ajouter des journées spécifiques
+- **Planning vierge** : Génération automatique de plannings sur périodes personnalisées
+- **Aperçus en temps réel** : Visualisation instantanée des modifications
+- **Templates d'horaires** : Horaires prédéfinis pour accélérer la saisie
 
 ### ✨ Système de profils
 - **Gestion complète** des profils multiples
@@ -235,16 +269,19 @@ Modifier `assets/css/variables.css` :
 - **Basculement automatique** lors de suppression
 
 ### 🔧 Améliorations techniques
+- **Architecture modulaire** avec PlanningManager
 - **Initialisation optimisée** pour éviter les conflits
 - **Sauvegarde renforcée** avec vérifications d'intégrité
 - **Gestion d'erreurs** améliorée avec fallbacks
 - **Logs détaillés** pour faciliter le debugging
 
 ### 🎨 Interface
+- **Menu enrichi** avec nouvelles options
 - **Badge profil actuel** dans le header principal
-- **Modale moderne** pour la gestion des profils
+- **Modales modernes** pour toutes les fonctionnalités
 - **Messages contextuels** selon les actions
 - **Animations fluides** pour les transitions
+- **Raccourcis clavier** étendus
 
 ## 📄 Licence
 
@@ -252,4 +289,4 @@ MIT License - Libre d'utilisation, modification et distribution.
 
 ---
 
-**Planning de Travail PWA v2.1** - Une solution moderne et flexible pour gérer tous vos plannings ! 📅✨👤
+**Planning de Travail PWA v2.2** - Une solution moderne et flexible pour créer et gérer tous vos plannings ! 📅✨👤📋

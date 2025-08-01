@@ -1,6 +1,6 @@
 /**
  * Point d'entrée de l'application Planning de Travail - PWA
- * Version avec système de profils
+ * Version avec système de profils et nouvelles fonctionnalités
  */
 
 /**
@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
         typeof DataManager === 'undefined' || 
         typeof WeekManager === 'undefined' ||
         typeof ProfileManager === 'undefined' ||
+        typeof PlanningManager === 'undefined' ||
         typeof PlanningApp === 'undefined') {
         console.error('Erreur: Classes manquantes. Vérifiez que tous les fichiers JS sont chargés.');
         showInitError('Classes manquantes');
@@ -21,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialiser l'application
     try {
         window.planningApp = new PlanningApp();
-        console.log('✅ Planning de Travail - Application avec profils initialisée');
+        console.log('✅ Planning de Travail - Application avec profils et nouvelles fonctionnalités initialisée');
         
         // Attacher les événements de fermeture
         attachCleanupEvents();
@@ -58,6 +59,10 @@ function enableDebugMode() {
     window.getCurrentProfile = () => window.planningApp.profileManager.getCurrentProfile();
     window.switchProfile = (id) => window.planningApp.profileManager.switchToProfile(id);
     
+    // NOUVEAU : Fonctions pour les nouvelles fonctionnalités
+    window.addDay = () => window.planningApp.showAddDayDialog();
+    window.createBlankPlanning = () => window.planningApp.showCreateBlankPlanningDialog();
+    
     // Raccourci clavier pour debug
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.altKey && e.key === 'D') {
@@ -65,8 +70,19 @@ function enableDebugMode() {
         }
     });
     
-    console.log('🔍 Commandes debug disponibles: debugApp(), getProfiles(), getCurrentProfile(), switchProfile(id)');
-    console.log('🎹 Raccourci: Ctrl+Alt+D pour debug');
+    console.log('🔍 Commandes debug disponibles:');
+    console.log('  - debugApp() : État de l\'application');
+    console.log('  - getProfiles() : Liste des profils');
+    console.log('  - getCurrentProfile() : Profil actuel');
+    console.log('  - switchProfile(id) : Basculer vers un profil');
+    console.log('  - addDay() : Ajouter un jour');
+    console.log('  - createBlankPlanning() : Créer un planning vierge');
+    console.log('🎹 Raccourcis disponibles:');
+    console.log('  - Ctrl+Alt+D : Debug');
+    console.log('  - Ctrl+S : Sauvegarder');
+    console.log('  - Ctrl+P : Profils');
+    console.log('  - Ctrl+D : Ajouter un jour');
+    console.log('  - Ctrl+N : Planning vierge');
 }
 
 /**
@@ -129,6 +145,7 @@ function showInitError(title, details = '') {
                         - DataManager: ${typeof DataManager !== 'undefined' ? '✅' : '❌'}<br>
                         - WeekManager: ${typeof WeekManager !== 'undefined' ? '✅' : '❌'}<br>
                         - ProfileManager: ${typeof ProfileManager !== 'undefined' ? '✅' : '❌'}<br>
+                        - PlanningManager: ${typeof PlanningManager !== 'undefined' ? '✅' : '❌'}<br>
                         - PlanningApp: ${typeof PlanningApp !== 'undefined' ? '✅' : '❌'}
                     </div>
                 </details>
@@ -285,6 +302,22 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
         if (window.planningApp && window.planningApp.profilesMenuItem) {
             window.planningApp.profilesMenuItem.click();
+        }
+    }
+    
+    // NOUVEAU : Ctrl+D pour ajouter un jour
+    if (e.ctrlKey && e.key === 'd') {
+        e.preventDefault();
+        if (window.planningApp) {
+            window.planningApp.showAddDayDialog();
+        }
+    }
+    
+    // NOUVEAU : Ctrl+N pour créer un planning vierge
+    if (e.ctrlKey && e.key === 'n') {
+        e.preventDefault();
+        if (window.planningApp) {
+            window.planningApp.showCreateBlankPlanningDialog();
         }
     }
     
