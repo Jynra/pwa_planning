@@ -148,24 +148,27 @@ class EditManager {
 	 * Génère le HTML pour les contrôles d'édition
 	 */
 	renderEditControls(dayId) {
-		const isEditing = this.isEditing(dayId);
+	    const isEditing = this.isEditing(dayId);
 		
-		if (isEditing) {
-			return `
-				<button class="edit-btn save" onclick="window.planningApp.editManager.saveEdit('${dayId}')">
-					💾 Enregistrer
-				</button>
-				<button class="edit-btn cancel" onclick="window.planningApp.editManager.cancelEdit('${dayId}')">
-					❌ Annuler
-				</button>
-			`;
-		} else {
-			return `
-				<button class="edit-btn" onclick="window.planningApp.editManager.startEdit('${dayId}')">
-					✏️ Modifier
-				</button>
-			`;
-		}
+	    if (isEditing) {
+	        return `
+	            <button class="edit-btn save" onclick="window.planningApp.editManager.saveEdit('${dayId}')">
+	                💾 Enregistrer
+	            </button>
+	            <button class="edit-btn cancel" onclick="window.planningApp.editManager.cancelEdit('${dayId}')">
+	                ❌ Annuler
+	            </button>
+	            <button class="edit-btn delete" onclick="window.planningApp.editManager.deleteDay('${dayId}')" title="Supprimer ce jour">
+	                🗑️ Supprimer
+	            </button>
+	        `;
+	    } else {
+	        return `
+	            <button class="edit-btn" onclick="window.planningApp.editManager.startEdit('${dayId}')">
+	                ✏️ Modifier
+	            </button>
+	        `;
+	    }
 	}
 
 	/**
@@ -204,6 +207,98 @@ class EditManager {
 		
 		html += '</div>';
 		return html;
+	}
+
+	/**
+	 * Supprime un jour complet du planning
+	 */
+	deleteDay(dayId) {
+	    try {
+	        // Extraire la date du dayId
+	        const dateStr = dayId.replace('day-', '');
+	        const targetDate = new Date(dateStr);
+	        targetDate.setHours(0, 0, 0, 0);
+		
+	        // Formater la date pour l'affichage
+	        const formattedDate = targetDate.toLocaleDateString('fr-FR', { 
+	            weekday: 'long', 
+	            day: 'numeric', 
+	            month: 'long' 
+	        });
+		
+	        // Demander confirmation
+	        const confirmMessage = `Êtes-vous sûr de vouloir supprimer le jour "${formattedDate}" ?\n\n` +
+	                              `Cette action supprimera définitivement toutes les données de cette journée.`;
+		
+	        if (!confirm(confirmMessage)) {
+	            console.log('🚫 Suppression annulée par l\'utilisateur');
+	            return;
+	        }
+		
+	        console.log(`🗑️ Suppression du jour: ${formattedDate}`);
+		
+	        // Compter les entrées à supprimer
+	        const entriesToDelete = this.app.planningData.filter(entry => {
+	            const entryDate = new Date(entry.dateObj);
+	            entryDate.setHours(0, 0, 0, 0);
+	            return entryDate.getTime() === targetDate.getTime();
+	        });
+		
+	        if (entriesToDelete.length === 0) {
+	            this.app.displayManager.showWarning('Aucune donnée trouvée pour ce jour');
+	            return;
+	        }
+		
+	        // Supprimer les entrées de cette date
+	        this.app.planningData = this.app.planningData.filter(entry => {
+	            const entryDate = new Date(entry.dateObj);
+	            entryDate.setHours(0, 0, 0, 0);
+	            return entryDate.getTime() !== targetDate.getTime();
+	        });
+		
+	        // Nettoyer les états d'édition
+	        this.editingStates.delete(dayId);
+	        this.originalData.delete(dayId);
+		
+	        // Sauvegarder dans le profil actuel
+	        this.app.profileManager.saveCurrentProfileData();
+		
+	        // Réorganiser et rafficher
+	        this.app.processDataWithValidation();
+		
+	        // Message de confirmation
+	        this.app.displayManager.showSuccess(
+	            `🗑️ Jour "${formattedDate}" supprimé (${entriesToDelete.length} entrée${entriesToDelete.length > 1 ? 's' : ''})`
+	        );
+		
+	        console.log(`✅ Jour supprimé avec succès: ${entriesToDelete.length} entrées`);
+		
+	    } catch (error) {
+	        console.error('❌ Erreur lors de la suppression du jour:', error);
+	        this.app.displayManager.showError(`Erreur: ${error.message}`);
+	    }
+	}
+
+	/**
+	 * Vérifie si un jour peut être supprimé (optionnel - pour des validations futures)
+	 */
+	canDeleteDay(dayId) {
+	    const dateStr = dayId.replace('day-', '');
+	    const targetDate = new Date(dateStr);
+	    targetDate.setHours(0, 0, 0, 0);
+	
+	    // Compter les entrées pour ce jour
+	    const entriesCount = this.app.planningData.filter(entry => {
+	        const entryDate = new Date(entry.dateObj);
+	        entryDate.setHours(0, 0, 0, 0);
+	        return entryDate.getTime() === targetDate.getTime();
+	    }).length;
+	
+	    return {
+	        canDelete: entriesCount > 0,
+	        entriesCount: entriesCount,
+	        reason: entriesCount === 0 ? 'Aucune donnée pour ce jour' : null
+	    };
 	}
 
 	/**
@@ -763,10 +858,34 @@ class EditManager {
 	 * Obtient les statistiques d'édition
 	 */
 	getEditStats() {
-		return {
-			currentEditing: Array.from(this.editingStates.entries()).filter(([_, isEditing]) => isEditing).length,
-			totalSessions: this.editingStates.size,
-			hasUnsavedChanges: this.originalData.size > 0
-		};
+	    return {
+	        currentEditing: Array.from(this.editingStates.entries()).filter(([_, isEditing]) => isEditing).length,
+	        totalSessions: this.editingStates.size,
+	        hasUnsavedChanges: this.originalData.size > 0,
+	        // NOUVEAU: ajout d'infos utiles
+	        totalDays: this.app.planningData ? this.getTotalDaysCount() : 0,
+	        editableDays: this.app.planningData ? this.getEditableDaysCount() : 0
+	    };
+	}
+
+	/**
+	 * Compte le nombre total de jours dans le planning
+	 */
+	getTotalDaysCount() {
+	    const uniqueDates = new Set();
+	    this.app.planningData.forEach(entry => {
+	        if (entry.dateObj) {
+	            const dateKey = entry.dateObj.toDateString();
+	            uniqueDates.add(dateKey);
+	        }
+	    });
+	    return uniqueDates.size;
+	}
+	
+	/**
+	 * Compte le nombre de jours éditables (avec des données)
+	 */
+	getEditableDaysCount() {
+	    return this.getTotalDaysCount(); // Tous les jours avec données sont éditables
 	}
 }
